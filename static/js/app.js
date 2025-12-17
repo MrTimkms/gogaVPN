@@ -83,6 +83,23 @@ async function loadSubscriptionPrice() {
     document.getElementById('subscriptionPrice').textContent = '100';
 }
 
+// Загрузка информации о СБП
+async function loadSBPInfo() {
+    try {
+        // Для пользователей СБП информация доступна через бота
+        // Здесь можно добавить API endpoint если нужно
+        const sbpContainer = document.getElementById('sbpPaymentInfo');
+        if (sbpContainer) {
+            sbpContainer.innerHTML = `
+                <p><i class="bi bi-phone"></i> Оплата через приложение банка</p>
+                <p class="small text-muted">Используйте QR-код или номер телефона</p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading SBP info:', error);
+    }
+}
+
 // Копирование ключа
 function copyKey() {
     if (!userKey) {
@@ -135,7 +152,7 @@ function showQR() {
 
 // Информация об оплате
 function showPaymentInfo() {
-    alert('Реквизиты для оплаты:\n\nКарта: 0000 0000 0000 0000\n\nПосле оплаты отправьте скриншот чека в бот для подтверждения.');
+    alert('Оплата через СБП:\n\n1. Откройте приложение вашего банка\n2. Выберите "Оплата по QR-коду" или "Перевод по номеру телефона"\n3. Отсканируйте QR-код или введите номер телефона\n4. Укажите сумму пополнения\n5. После оплаты отправьте скриншот чека в бот для подтверждения.\n\nИли используйте автоплатеж для автоматического пополнения.');
 }
 
 // Выход

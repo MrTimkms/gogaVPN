@@ -131,17 +131,51 @@ async def get_key(message: Message):
 
 @router.message(F.text == "💰 Пополнить баланс")
 async def show_payment_info(message: Message, state: FSMContext):
-    """Показывает реквизиты для пополнения"""
-    payment_info = (
-        "💰 <b>Пополнение баланса</b>\n\n"
-        "Реквизиты для оплаты:\n"
-        "💳 Карта: <code>0000 0000 0000 0000</code>\n"
-        "📝 Назначение: Пополнение VPN\n\n"
-        "После оплаты отправьте скриншот чека для подтверждения."
-    )
-    
-    await message.answer(payment_info, parse_mode="HTML")
-    await state.set_state(PaymentStates.waiting_for_screenshot)
+    """Показывает реквизиты для пополнения через СБП"""
+    db = SessionLocal()
+    try:
+        from app.services.billing import get_sbp_info
+        
+        sbp_info = get_sbp_info(db)
+        
+        payment_info = (
+            "💰 <b>Пополнение баланса</b>\n\n"
+            "💳 <b>Оплата через СБП:</b>\n"
+        )
+        
+        if sbp_info.get('phone'):
+            payment_info += f"📱 Телефон: <code>{sbp_info['phone']}</code>\n"
+        
+        if sbp_info.get('account'):
+            payment_info += f"🏦 Счет: <code>{sbp_info['account']}</code>\n"
+        
+        payment_info += (
+            "\n📝 <b>Как оплатить:</b>\n"
+            "1. Откройте приложение вашего банка\n"
+            "2. Выберите 'Оплата по QR-коду' или 'Перевод по номеру телефона'\n"
+            "3. Отсканируйте QR-код или введите номер телефона\n"
+            "4. Укажите сумму пополнения\n"
+            "5. После оплаты отправьте скриншот чека\n\n"
+            "💡 <i>Или используйте автоплатеж для автоматического пополнения</i>"
+        )
+        
+        await message.answer(payment_info, parse_mode="HTML")
+        
+        # Отправляем QR-код если есть
+        if sbp_info.get('qr_code_path'):
+            try:
+                from aiogram.types import FSInputFile
+                qr_file = FSInputFile(sbp_info['qr_code_path'])
+                await message.answer_photo(
+                    photo=qr_file,
+                    caption="📱 QR-код для оплаты через СБП"
+                )
+            except Exception as e:
+                logger.error(f"Ошибка отправки QR-кода: {e}")
+        
+        await state.set_state(PaymentStates.waiting_for_screenshot)
+    finally:
+        db.close()
 
 
 @router.message(PaymentStates.waiting_for_screenshot, F.photo)
@@ -249,6 +283,60 @@ async def show_debtors(message: Message):
             text += f"  Баланс: {user.balance:.2f} ₽\n\n"
         
         await message.answer(text, parse_mode="HTML")
+    finally:
+        db.close()
+
+
+@router.message(F.text == "💳 СБП настройки")
+async def sbp_settings(message: Message):
+    """Настройки СБП"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    db = SessionLocal()
+    try:
+        from app.services.billing import get_sbp_info
+        sbp_info = get_sbp_info(db)
+        
+        text = "💳 <b>Настройки СБП</b>\n\n"
+        
+        if sbp_info.get('phone'):
+            text += f"📱 Телефон: <code>{sbp_info['phone']}</code>\n"
+        else:
+            text += "📱 Телефон: <i>не настроен</i>\n"
+        
+        if sbp_info.get('account'):
+            text += f"🏦 Счет: <code>{sbp_info['account']}</code>\n"
+        else:
+            text += "🏦 Счет: <i>не настроен</i>\n"
+        
+        if sbp_info.get('qr_code_path'):
+            text += "✅ QR-код загружен\n"
+        else:
+            text += "❌ QR-код не загружен\n"
+        
+        text += "\n💡 Для изменения настроек используйте веб-админ-панель:\n"
+        text += "http://ваш_сервер:8080/admin"
+        
+        await message.answer(text, parse_mode="HTML")
+        
+        # Отправляем QR-код если есть
+        if sbp_info.get('qr_code_path'):
+            try:
+                from aiogram.types import FSInputFile
+                import os
+                qr_path = sbp_info['qr_code_path']
+                # Если путь относительный, делаем абсолютным
+                if not os.path.isabs(qr_path):
+                    qr_path = os.path.join(os.getcwd(), qr_path)
+                if os.path.exists(qr_path):
+                    qr_file = FSInputFile(qr_path)
+                    await message.answer_photo(
+                        photo=qr_file,
+                        caption="📱 QR-код для оплаты через СБП"
+                    )
+            except Exception as e:
+                logger.error(f"Ошибка отправки QR-кода: {e}")
     finally:
         db.close()
 

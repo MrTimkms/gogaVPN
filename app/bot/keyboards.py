@@ -18,9 +18,9 @@ def get_admin_menu():
     """Меню администратора"""
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="👥 Все пользователи")],
-            [KeyboardButton(text="👻 Спящие профили"), KeyboardButton(text="⚠️ Должники")],
-            [KeyboardButton(text="⚙️ Настройки"), KeyboardButton(text="📊 Статистика")],
+            [KeyboardButton(text="👥 Все пользователи"), KeyboardButton(text="👻 Спящие профили")],
+            [KeyboardButton(text="⚠️ Должники"), KeyboardButton(text="📊 Статистика")],
+            [KeyboardButton(text="⚙️ Настройки"), KeyboardButton(text="💳 СБП настройки")],
             [KeyboardButton(text="🔙 Главное меню")]
         ],
         resize_keyboard=True

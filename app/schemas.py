@@ -89,3 +89,9 @@ class UserMapping(BaseModel):
 class SettingsUpdate(BaseModel):
     subscription_price: float
 
+
+class SBPInfoUpdate(BaseModel):
+    phone: Optional[str] = None
+    account: Optional[str] = None
+    qr_code_path: Optional[str] = None
+

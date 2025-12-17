@@ -97,3 +97,55 @@ def check_upcoming_billing(db: Session, days_before: int = 2) -> List[User]:
     
     return users
 
+
+def get_sbp_info(db: Session) -> dict:
+    """Получает информацию о СБП для оплаты"""
+    settings = {
+        'phone': None,
+        'account': None,
+        'qr_code_path': None
+    }
+    
+    phone_setting = db.query(SystemSettings).filter(SystemSettings.key == "sbp_phone").first()
+    if phone_setting:
+        settings['phone'] = phone_setting.value
+    
+    account_setting = db.query(SystemSettings).filter(SystemSettings.key == "sbp_account").first()
+    if account_setting:
+        settings['account'] = account_setting.value
+    
+    qr_setting = db.query(SystemSettings).filter(SystemSettings.key == "sbp_qr_code_path").first()
+    if qr_setting:
+        settings['qr_code_path'] = qr_setting.value
+    
+    return settings
+
+
+def set_sbp_info(db: Session, phone: str = None, account: str = None, qr_code_path: str = None):
+    """Устанавливает информацию о СБП"""
+    if phone:
+        setting = db.query(SystemSettings).filter(SystemSettings.key == "sbp_phone").first()
+        if setting:
+            setting.value = phone
+        else:
+            setting = SystemSettings(key="sbp_phone", value=phone)
+            db.add(setting)
+    
+    if account:
+        setting = db.query(SystemSettings).filter(SystemSettings.key == "sbp_account").first()
+        if setting:
+            setting.value = account
+        else:
+            setting = SystemSettings(key="sbp_account", value=account)
+            db.add(setting)
+    
+    if qr_code_path:
+        setting = db.query(SystemSettings).filter(SystemSettings.key == "sbp_qr_code_path").first()
+        if setting:
+            setting.value = qr_code_path
+        else:
+            setting = SystemSettings(key="sbp_qr_code_path", value=qr_code_path)
+            db.add(setting)
+    
+    db.commit()
+

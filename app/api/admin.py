@@ -4,7 +4,7 @@ from app.database import get_db
 from app.models import User, Transaction, SystemSettings
 from app.schemas import (
     UserResponse, BalanceAdjustment, KeyUpdate, UserMapping,
-    CSVImportResponse, SettingsUpdate
+    CSVImportResponse, SettingsUpdate, SBPInfoUpdate
 )
 from app.services.csv_import import import_csv
 from app.services.billing import get_subscription_price, set_subscription_price
@@ -201,4 +201,81 @@ def update_settings(
     
     set_subscription_price(db, settings_update.subscription_price)
     return {"success": True}
+
+
+@router.get("/sbp-info")
+def get_sbp_info(
+    telegram_id: int,
+    db: Session = Depends(get_db)
+):
+    """Получает информацию о СБП"""
+    if not verify_admin(telegram_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    from app.services.billing import get_sbp_info
+    return get_sbp_info(db)
+
+
+@router.post("/sbp-info")
+async def update_sbp_info(
+    sbp_info: SBPInfoUpdate,
+    telegram_id: int,
+    db: Session = Depends(get_db)
+):
+    """Обновляет информацию о СБП"""
+    if not verify_admin(telegram_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    from app.services.billing import set_sbp_info
+    
+    # Обработка загрузки QR-кода
+    qr_code_path = sbp_info.qr_code_path
+    if qr_code_path and not qr_code_path.startswith('/'):
+        # Сохраняем путь относительно static
+        import os
+        qr_code_path = f"static/uploads/{qr_code_path}"
+        os.makedirs("static/uploads", exist_ok=True)
+    
+    set_sbp_info(
+        db,
+        phone=sbp_info.phone,
+        account=sbp_info.account,
+        qr_code_path=qr_code_path
+    )
+    
+    return {"success": True}
+
+
+@router.post("/upload-qr")
+async def upload_qr_code(
+    file: UploadFile = File(...),
+    telegram_id: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Загружает QR-код для СБП"""
+    if not verify_admin(telegram_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    import os
+    import uuid
+    
+    # Создаем директорию если нет
+    upload_dir = "static/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Генерируем уникальное имя файла
+    file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+    filename = f"sbp_qr_{uuid.uuid4().hex[:8]}.{file_ext}"
+    file_path = os.path.join(upload_dir, filename)
+    
+    # Сохраняем файл
+    async with aiofiles.open(file_path, 'wb') as f:
+        content = await file.read()
+        await f.write(content)
+    
+    # Сохраняем путь в настройках
+    from app.services.billing import set_sbp_info
+    set_sbp_info(db, qr_code_path=file_path)
+    
+    return {"success": True, "file_path": file_path}
 

@@ -152,10 +152,36 @@
                     <div class="card admin-card">
                         <div class="card-body">
                             <h5 class="card-title">Настройки системы</h5>
-                            <div class="mb-3">
-                                <label class="form-label">Цена подписки (₽/мес)</label>
-                                <input type="number" class="form-control" id="subscriptionPriceInput" step="0.01">
-                                <button class="btn btn-primary mt-2" onclick="updateSettings()">Сохранить</button>
+                            
+                            <div class="mb-4">
+                                <h6>Тарифы</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Цена подписки (₽/мес)</label>
+                                    <input type="number" class="form-control" id="subscriptionPriceInput" step="0.01">
+                                    <button class="btn btn-primary mt-2" onclick="updateSettings()">Сохранить</button>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="mb-4">
+                                <h6>Оплата через СБП</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Номер телефона для СБП</label>
+                                    <input type="text" class="form-control" id="sbpPhoneInput" placeholder="+79001234567">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Номер счета (опционально)</label>
+                                    <input type="text" class="form-control" id="sbpAccountInput" placeholder="40817810099910004312">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">QR-код для оплаты</label>
+                                    <input type="file" class="form-control" id="sbpQrFile" accept="image/*">
+                                    <small class="text-muted">Загрузите изображение QR-кода СБП</small>
+                                    <button class="btn btn-success mt-2" onclick="uploadQRCode()">Загрузить QR-код</button>
+                                </div>
+                                <div id="currentQrCode" class="mb-3"></div>
+                                <button class="btn btn-primary" onclick="updateSBPInfo()">Сохранить настройки СБП</button>
                             </div>
                         </div>
                     </div>

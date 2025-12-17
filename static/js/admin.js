@@ -147,6 +147,25 @@ async function loadSettings() {
         
         const settings = await response.json();
         document.getElementById('subscriptionPriceInput').value = settings.subscription_price;
+        
+        // Загрузка СБП информации
+        const sbpResponse = await fetch(`/api/admin/sbp-info?telegram_id=${adminTelegramId}`);
+        if (sbpResponse.ok) {
+            const sbpInfo = await sbpResponse.json();
+            if (sbpInfo.phone) {
+                document.getElementById('sbpPhoneInput').value = sbpInfo.phone;
+            }
+            if (sbpInfo.account) {
+                document.getElementById('sbpAccountInput').value = sbpInfo.account;
+            }
+            if (sbpInfo.qr_code_path) {
+                const qrContainer = document.getElementById('currentQrCode');
+                qrContainer.innerHTML = `
+                    <label class="form-label">Текущий QR-код:</label>
+                    <img src="/${sbpInfo.qr_code_path}" alt="QR Code" class="img-thumbnail" style="max-width: 200px;">
+                `;
+            }
+        }
     } catch (error) {
         console.error('Error loading settings:', error);
     }
@@ -166,6 +185,60 @@ async function updateSettings() {
         if (!response.ok) throw new Error('Ошибка обновления');
         
         alert('Настройки сохранены');
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Обновление СБП информации
+async function updateSBPInfo() {
+    const phone = document.getElementById('sbpPhoneInput').value;
+    const account = document.getElementById('sbpAccountInput').value;
+    
+    try {
+        const response = await fetch(`/api/admin/sbp-info?telegram_id=${adminTelegramId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: phone,
+                account: account
+            })
+        });
+        
+        if (!response.ok) throw new Error('Ошибка обновления');
+        
+        alert('Настройки СБП сохранены');
+        loadSettings(); // Перезагружаем для отображения QR-кода
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Загрузка QR-кода
+async function uploadQRCode() {
+    const fileInput = document.getElementById('sbpQrFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Выберите файл QR-кода');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('telegram_id', adminTelegramId);
+    
+    try {
+        const response = await fetch('/api/admin/upload-qr', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        
+        const result = await response.json();
+        alert('QR-код загружен успешно!');
+        loadSettings(); // Перезагружаем для отображения
     } catch (error) {
         alert('Ошибка: ' + error.message);
     }
