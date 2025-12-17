@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     server_name: Optional[str] = None
     enable_billing_notifications: bool = True
     notify_before_billing_days: int = 2
+    enable_negative_balance_notifications: bool = True
 
 
 class UserCreate(UserBase):
@@ -32,6 +33,7 @@ class UserUpdate(BaseModel):
     server_name: Optional[str] = None
     enable_billing_notifications: Optional[bool] = None
     notify_before_billing_days: Optional[int] = None
+    enable_negative_balance_notifications: Optional[bool] = None
 
 
 class UserResponse(UserBase):
@@ -39,6 +41,7 @@ class UserResponse(UserBase):
     is_ghost: bool
     enable_billing_notifications: bool
     notify_before_billing_days: int
+    enable_negative_balance_notifications: bool
     created_at: datetime
     updated_at: datetime
     
@@ -100,4 +103,9 @@ class SBPInfoUpdate(BaseModel):
     phone: Optional[str] = None
     account: Optional[str] = None
     qr_code_path: Optional[str] = None
+
+
+class SendNotificationRequest(BaseModel):
+    user_id: int
+    message: str
 

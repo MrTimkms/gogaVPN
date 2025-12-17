@@ -4,7 +4,8 @@ from app.database import get_db
 from app.models import User, Transaction, SystemSettings
 from app.schemas import (
     UserResponse, BalanceAdjustment, KeyUpdate, UserMapping,
-    CSVImportResponse, SettingsUpdate, SBPInfoUpdate, UserUpdate
+    CSVImportResponse, SettingsUpdate, SBPInfoUpdate, UserUpdate,
+    SendNotificationRequest
 )
 from app.services.csv_import import import_csv
 from app.services.billing import get_subscription_price, set_subscription_price
@@ -196,6 +197,8 @@ def update_user(
             user.notify_before_billing_days = user_update.notify_before_billing_days
         else:
             raise HTTPException(status_code=400, detail="notify_before_billing_days must be between 0 and 30")
+    if user_update.enable_negative_balance_notifications is not None:
+        user.enable_negative_balance_notifications = user_update.enable_negative_balance_notifications
     
     db.commit()
     db.refresh(user)
@@ -324,4 +327,33 @@ async def upload_qr_code(
     set_sbp_info(db, qr_code_path=file_path)
     
     return {"success": True, "file_path": file_path}
+
+
+@router.post("/send-notification")
+def send_notification_to_user(
+    request: SendNotificationRequest,
+    telegram_id: int,  # ID админа из query параметра
+    db: Session = Depends(get_db)
+):
+    """Отправляет уведомление пользователю через бота"""
+    if not verify_admin(telegram_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    user = db.query(User).filter(User.id == request.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.telegram_id:
+        raise HTTPException(status_code=400, detail="User has no Telegram ID")
+    
+    # Создаем уведомление
+    from app.services.notifications import create_notification
+    create_notification(
+        db,
+        user.id,
+        request.message,
+        "admin_message"
+    )
+    
+    return {"success": True, "message": "Уведомление создано и будет отправлено в ближайшее время"}
 

@@ -296,7 +296,9 @@ async function openUserModal(userId) {
         
         // Заполняем настройки уведомлений
         document.getElementById('modalUserEnableNotifications').checked = user.enable_billing_notifications !== false;
+        document.getElementById('modalUserEnableNegativeBalanceNotifications').checked = user.enable_negative_balance_notifications !== false;
         document.getElementById('modalUserNotifyDays').value = user.notify_before_billing_days || 2;
+        document.getElementById('notificationMessage').value = ''; // Очищаем поле уведомления
         
         const modal = new bootstrap.Modal(document.getElementById('userModal'));
         modal.show();
@@ -405,6 +407,7 @@ async function updateBillingDate() {
 async function updateNotificationSettings() {
     const userId = parseInt(document.getElementById('modalUserId').value);
     const enableNotifications = document.getElementById('modalUserEnableNotifications').checked;
+    const enableNegativeBalanceNotifications = document.getElementById('modalUserEnableNegativeBalanceNotifications').checked;
     const notifyDays = parseInt(document.getElementById('modalUserNotifyDays').value);
     
     if (isNaN(notifyDays) || notifyDays < 0 || notifyDays > 30) {
@@ -418,6 +421,7 @@ async function updateNotificationSettings() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 enable_billing_notifications: enableNotifications,
+                enable_negative_balance_notifications: enableNegativeBalanceNotifications,
                 notify_before_billing_days: notifyDays
             })
         });
@@ -429,6 +433,43 @@ async function updateNotificationSettings() {
         
         alert('Настройки уведомлений обновлены');
         loadUsers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Отправка уведомления пользователю
+async function sendNotificationToUser() {
+    const userId = parseInt(document.getElementById('modalUserId').value);
+    const message = document.getElementById('notificationMessage').value.trim();
+    
+    if (!message) {
+        alert('Введите текст уведомления');
+        return;
+    }
+    
+    if (!confirm('Отправить уведомление пользователю?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/send-notification?telegram_id=${adminTelegramId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                message: message
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка отправки');
+        }
+        
+        const result = await response.json();
+        alert('✅ ' + result.message);
+        document.getElementById('notificationMessage').value = ''; // Очищаем поле
     } catch (error) {
         alert('Ошибка: ' + error.message);
     }

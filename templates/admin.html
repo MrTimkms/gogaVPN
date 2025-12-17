@@ -254,12 +254,28 @@
                                 Включить уведомления о списании
                             </label>
                         </div>
-                        <div class="input-group">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="modalUserEnableNegativeBalanceNotifications" checked>
+                            <label class="form-check-label" for="modalUserEnableNegativeBalanceNotifications">
+                                Включить уведомления об отрицательном балансе
+                            </label>
+                        </div>
+                        <div class="input-group mb-2">
                             <span class="input-group-text">Уведомлять за</span>
                             <input type="number" class="form-control" id="modalUserNotifyDays" min="0" max="30" value="2">
                             <span class="input-group-text">дней до списания</span>
                         </div>
                         <button class="btn btn-success mt-2" onclick="updateNotificationSettings()">Сохранить настройки</button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Отправка уведомления</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="notificationMessage" placeholder="Введите текст уведомления">
+                            <button class="btn btn-warning" onclick="sendNotificationToUser()">
+                                <i class="bi bi-send"></i> Отправить уведомление
+                            </button>
+                        </div>
+                        <small class="text-muted">Уведомление будет отправлено пользователю через бота</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">VPN Ключ</label>

@@ -46,6 +46,15 @@ async def daily_billing(bot: Bot):
             if user.telegram_id:
                 await send_notification(bot, user.telegram_id, message)
             
+            # Уведомляем пользователя об отрицательном балансе, если настройка включена
+            if not success and user.telegram_id and user.enable_negative_balance_notifications:
+                negative_balance_message = (
+                    f"⚠️ Ваш баланс отрицательный или недостаточен для оплаты подписки. "
+                    f"Текущий баланс: {user.balance:.2f} ₽. "
+                    f"Пожалуйста, пополните баланс для продолжения работы VPN."
+                )
+                await send_notification(bot, user.telegram_id, negative_balance_message)
+            
             # Уведомляем админов о должниках
             if not success and user.telegram_id:
                 admin_message = (
@@ -67,9 +76,12 @@ async def check_upcoming_billings(bot: Bot):
         users = check_upcoming_billing(db, days_before=2)
         
         for user in users:
-            if user.telegram_id:
+            # Проверяем настройку уведомлений пользователя
+            if user.telegram_id and user.enable_billing_notifications:
+                # Используем настройку пользователя для количества дней
+                days_before = user.notify_before_billing_days if user.notify_before_billing_days else 2
                 message = (
-                    f"⏰ Напоминание: послезавтра списание {price:.2f} ₽, "
+                    f"⏰ Напоминание: через {days_before} дн. списание {price:.2f} ₽, "
                     f"на счету не хватает средств. Текущий баланс: {user.balance:.2f} ₽"
                 )
                 await send_notification(bot, user.telegram_id, message)

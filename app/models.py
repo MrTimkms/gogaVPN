@@ -22,6 +22,7 @@ class User(Base):
     # Настройки уведомлений
     enable_billing_notifications = Column(Boolean, default=True)  # Включены ли уведомления о списании
     notify_before_billing_days = Column(Integer, default=2)  # За сколько дней до списания уведомлять
+    enable_negative_balance_notifications = Column(Boolean, default=True)  # Включены ли уведомления об отрицательном балансе
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     

@@ -75,12 +75,12 @@ def process_billing(db: Session, user: User) -> Tuple[bool, str]:
 
 
 def get_debtors(db: Session) -> List[User]:
-    """Получает список должников"""
+    """Получает список должников (пользователи с отрицательным балансом или балансом меньше цены подписки)"""
     price = get_subscription_price(db)
     return db.query(User).filter(
         User.balance < price,
-        User.status == "debt"
-    ).all()
+        User.is_ghost == False  # Исключаем спящие профили
+    ).order_by(User.balance.asc()).all()  # Сортируем по балансу (от меньшего к большему)
 
 
 def check_upcoming_billing(db: Session, days_before: int = 2) -> List[User]:
