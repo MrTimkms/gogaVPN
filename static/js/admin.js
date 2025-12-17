@@ -101,15 +101,17 @@ async function loadUsers() {
 // Отображение пользователей в таблице
 function displayUsers(users) {
     const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = users.map(user => {
-            const billingDate = user.next_billing_date ? new Date(user.next_billing_date).toLocaleDateString('ru-RU') : '-';
-            const notifyStatus = user.enable_billing_notifications 
-                ? `<span class="badge bg-info" title="Уведомления за ${user.notify_before_billing_days} дн.">🔔</span>` 
-                : '<span class="badge bg-secondary" title="Уведомления отключены">🔕</span>';
-            const telegramLink = user.telegram_id 
-                ? `<a href="tg://user?id=${user.telegram_id}" class="text-decoration-none" title="Открыть диалог в Telegram">${user.telegram_id} <i class="bi bi-telegram"></i></a>`
-                : '-';
-            return `
+        const billingDate = user.next_billing_date ? new Date(user.next_billing_date).toLocaleDateString('ru-RU') : '-';
+        const notifyStatus = user.enable_billing_notifications 
+            ? `<span class="badge bg-info" title="Уведомления за ${user.notify_before_billing_days} дн.">🔔</span>` 
+            : '<span class="badge bg-secondary" title="Уведомления отключены">🔕</span>';
+        const telegramLink = user.telegram_id 
+            ? `<a href="tg://user?id=${user.telegram_id}" class="text-decoration-none" title="Открыть диалог в Telegram">${user.telegram_id} <i class="bi bi-telegram"></i></a>`
+            : '-';
+        return `
             <tr>
                 <td>${user.id}</td>
                 <td>${user.name}</td>
@@ -137,10 +139,7 @@ function displayUsers(users) {
                 </td>
             </tr>
         `;
-        }).join('');
-    } catch (error) {
-        console.error('Error loading users:', error);
-    }
+    }).join('');
 }
 
 // Загрузка спящих профилей
