@@ -1,4 +1,5 @@
 let adminTelegramId = null;
+let allUsers = []; // Сохраняем всех пользователей для фильтрации
 
 // Вход в админ-панель
 async function adminLogin() {
@@ -89,22 +90,50 @@ async function loadUsers() {
         if (!response.ok) throw new Error('Ошибка загрузки');
         
         const users = await response.json();
-        const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = users.map(user => {
+        allUsers = users; // Сохраняем для фильтрации
+        displayUsers(users);
+        updateUsersStats(users);
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+// Отображение пользователей в таблице
+function displayUsers(users) {
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = users.map(user => {
             const billingDate = user.next_billing_date ? new Date(user.next_billing_date).toLocaleDateString('ru-RU') : '-';
             const notifyStatus = user.enable_billing_notifications 
                 ? `<span class="badge bg-info" title="Уведомления за ${user.notify_before_billing_days} дн.">🔔</span>` 
                 : '<span class="badge bg-secondary" title="Уведомления отключены">🔕</span>';
+            const telegramLink = user.telegram_id 
+                ? `<a href="tg://user?id=${user.telegram_id}" class="text-decoration-none" title="Открыть диалог в Telegram">${user.telegram_id} <i class="bi bi-telegram"></i></a>`
+                : '-';
             return `
             <tr>
                 <td>${user.id}</td>
                 <td>${user.name}</td>
-                <td>${user.telegram_id || '-'}</td>
+                <td>${telegramLink}</td>
                 <td>${user.balance.toFixed(2)} ₽</td>
                 <td>${billingDate} ${notifyStatus}</td>
                 <td>${getStatusBadge(user.status)}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="openUserModal(${user.id})">Управление</button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-primary" onclick="openUserModal(${user.id})" title="Управление">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                        ${user.status === 'active' 
+                            ? `<button class="btn btn-sm btn-danger" onclick="quickBlockUser(${user.id})" title="Заблокировать">
+                                <i class="bi bi-lock"></i>
+                               </button>`
+                            : `<button class="btn btn-sm btn-success" onclick="quickUnblockUser(${user.id})" title="Разблокировать">
+                                <i class="bi bi-unlock"></i>
+                               </button>`
+                        }
+                        <button class="btn btn-sm btn-info" onclick="showUserTransactions(${user.id})" title="Транзакции">
+                            <i class="bi bi-list-ul"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -145,17 +174,22 @@ async function loadDebtors() {
         
         const debtors = await response.json();
         const tbody = document.getElementById('debtorsTableBody');
-        tbody.innerHTML = debtors.map(user => `
+        tbody.innerHTML = debtors.map(user => {
+            const telegramLink = user.telegram_id 
+                ? `<a href="tg://user?id=${user.telegram_id}" class="text-decoration-none" title="Открыть диалог в Telegram">${user.telegram_id} <i class="bi bi-telegram"></i></a>`
+                : '-';
+            return `
             <tr>
                 <td>${user.id}</td>
                 <td>${user.name}</td>
-                <td>${user.telegram_id || '-'}</td>
+                <td>${telegramLink}</td>
                 <td>${user.balance.toFixed(2)} ₽</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="openUserModal(${user.id})">Управление</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         console.error('Error loading debtors:', error);
     }
@@ -344,6 +378,39 @@ async function adjustBalance() {
     }
 }
 
+// Обновление имени пользователя
+async function updateUserName() {
+    const userId = parseInt(document.getElementById('modalUserId').value);
+    const name = document.getElementById('modalUserName').value.trim();
+    
+    if (!name) {
+        alert('Введите имя');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка обновления');
+        }
+        
+        alert('Имя обновлено');
+        loadUsers();
+        loadDebtors();
+        loadGhostUsers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
 // Обновление ключа
 async function updateKey() {
     const userId = parseInt(document.getElementById('modalUserId').value);
@@ -508,6 +575,232 @@ function logout() {
     adminTelegramId = null;
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('adminPanel').style.display = 'none';
+}
+
+// Поиск и фильтрация пользователей
+function filterUsers() {
+    const searchText = document.getElementById('userSearchInput')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('statusFilter')?.value || '';
+    
+    let filtered = allUsers.filter(user => {
+        const matchesSearch = !searchText || 
+            user.name.toLowerCase().includes(searchText) ||
+            user.id.toString().includes(searchText) ||
+            (user.telegram_id && user.telegram_id.toString().includes(searchText));
+        
+        const matchesStatus = !statusFilter || user.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+    
+    displayUsers(filtered);
+    updateUsersStats(filtered);
+}
+
+// Обновление статистики пользователей
+function updateUsersStats(users) {
+    const statsDiv = document.getElementById('usersStats');
+    if (!statsDiv) return;
+    
+    const total = users.length;
+    const active = users.filter(u => u.status === 'active').length;
+    const blocked = users.filter(u => u.status === 'blocked').length;
+    const debt = users.filter(u => u.status === 'debt').length;
+    const totalBalance = users.reduce((sum, u) => sum + u.balance, 0);
+    
+    statsDiv.innerHTML = `
+        <div class="row g-2">
+            <div class="col-md-2">
+                <div class="card bg-primary text-white">
+                    <div class="card-body p-2">
+                        <small>Всего</small>
+                        <h5 class="mb-0">${total}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-success text-white">
+                    <div class="card-body p-2">
+                        <small>Активных</small>
+                        <h5 class="mb-0">${active}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-danger text-white">
+                    <div class="card-body p-2">
+                        <small>Должников</small>
+                        <h5 class="mb-0">${debt}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body p-2">
+                        <small>Заблокированных</small>
+                        <h5 class="mb-0">${blocked}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body p-2">
+                        <small>Общий баланс</small>
+                        <h5 class="mb-0">${totalBalance.toFixed(2)} ₽</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Быстрая блокировка пользователя
+async function quickBlockUser(userId) {
+    if (!confirm('Заблокировать пользователя?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'blocked' })
+        });
+        
+        if (!response.ok) throw new Error('Ошибка блокировки');
+        
+        alert('Пользователь заблокирован');
+        loadUsers();
+        loadDebtors();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Быстрая разблокировка пользователя
+async function quickUnblockUser(userId) {
+    if (!confirm('Разблокировать пользователя?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'active' })
+        });
+        
+        if (!response.ok) throw new Error('Ошибка разблокировки');
+        
+        alert('Пользователь разблокирован');
+        loadUsers();
+        loadDebtors();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Просмотр транзакций пользователя
+async function showUserTransactions(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/transactions`);
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        
+        const transactions = await response.json();
+        const user = allUsers.find(u => u.id === userId);
+        
+        let html = `
+            <div class="modal fade" id="transactionsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Транзакции: ${user ? user.name : 'Пользователь #' + userId}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Тип</th>
+                                        <th>Сумма</th>
+                                        <th>Описание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+        `;
+        
+        if (transactions.length === 0) {
+            html += '<tr><td colspan="4" class="text-center">Транзакций нет</td></tr>';
+        } else {
+            transactions.forEach(t => {
+                const date = new Date(t.created_at).toLocaleString('ru-RU');
+                const typeBadge = t.transaction_type === 'deposit' 
+                    ? '<span class="badge bg-success">Пополнение</span>'
+                    : t.transaction_type === 'withdrawal'
+                    ? '<span class="badge bg-danger">Списание</span>'
+                    : '<span class="badge bg-warning">Корректировка</span>';
+                const amountClass = t.amount >= 0 ? 'text-success' : 'text-danger';
+                html += `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${typeBadge}</td>
+                        <td class="${amountClass}">${t.amount >= 0 ? '+' : ''}${t.amount.toFixed(2)} ₽</td>
+                        <td>${t.description || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Удаляем старый модал если есть
+        const oldModal = document.getElementById('transactionsModal');
+        if (oldModal) oldModal.remove();
+        
+        // Добавляем новый модал
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modal = new bootstrap.Modal(document.getElementById('transactionsModal'));
+        modal.show();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Экспорт пользователей в CSV
+function exportUsersToCSV() {
+    if (allUsers.length === 0) {
+        alert('Нет данных для экспорта');
+        return;
+    }
+    
+    const headers = ['ID', 'Имя', 'Telegram ID', 'Баланс', 'Статус', 'Дата списания'];
+    const rows = allUsers.map(user => [
+        user.id,
+        user.name,
+        user.telegram_id || '',
+        user.balance.toFixed(2),
+        user.status,
+        user.next_billing_date || ''
+    ]);
+    
+    const csvContent = [
+        headers.join(';'),
+        ...rows.map(row => row.join(';'))
+    ].join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Вспомогательные функции
