@@ -26,7 +26,7 @@ services:
       DEBUG: ${DEBUG:-True}
       DEFAULT_SUBSCRIPTION_PRICE: ${DEFAULT_SUBSCRIPTION_PRICE:-100}
     ports:
-      - "8000:8000"
+      - "8080:8000"  # Внешний порт 8080, внутренний 8000
     depends_on:
       db:
         condition: service_healthy

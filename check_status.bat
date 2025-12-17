@@ -29,13 +29,13 @@ if %ERRORLEVEL% EQU 0 (
 echo.
 
 echo 4️⃣ Проверка веб-интерфейса...
-curl -s -o nul -w "%%{http_code}" http://localhost:8000 >nul 2>nul
+curl -s -o nul -w "%%{http_code}" http://localhost:8080 >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     echo    ✅ Веб-интерфейс доступен
 ) else (
-    curl -s -o nul -w "%%{http_code}" http://localhost:8001 >nul 2>nul
+    curl -s -o nul -w "%%{http_code}" http://localhost:8081 >nul 2>nul
     if %ERRORLEVEL% EQU 0 (
-        echo    ✅ Веб-интерфейс доступен на порту 8001
+        echo    ✅ Веб-интерфейс доступен на порту 8081
     ) else (
         echo    ⚠️ Веб-интерфейс недоступен
     )
@@ -68,13 +68,13 @@ echo 📋 Итоговая информация:
 echo ==========================
 echo.
 echo 🌐 Веб-интерфейс:
-echo    http://localhost:8000 (или 8001^)
+echo    http://localhost:8080
 echo.
 echo 📚 API документация:
-echo    http://localhost:8000/docs (или 8001^)
+echo    http://localhost:8080/docs
 echo.
 echo ⚙️ Админ-панель:
-echo    http://localhost:8000/admin (или 8001^)
+echo    http://localhost:8080/admin
 echo.
 
 pause

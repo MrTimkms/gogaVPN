@@ -46,9 +46,9 @@ echo ""
 # Проверка портов
 echo "4️⃣ Проверка портов..."
 if command -v netstat &> /dev/null; then
-    if netstat -tuln 2>/dev/null | grep -q ":8000\|:8001"; then
-        echo "   ✅ Порт 8000 или 8001 открыт"
-        netstat -tuln 2>/dev/null | grep ":8000\|:8001"
+    if netstat -tuln 2>/dev/null | grep -q ":8080\|:8081"; then
+        echo "   ✅ Порт 8080 или 8081 открыт"
+        netstat -tuln 2>/dev/null | grep ":8080\|:8081"
     else
         echo "   ⚠️ Порт не найден"
     fi
@@ -65,7 +65,7 @@ echo ""
 # Проверка доступности веб-интерфейса
 echo "5️⃣ Проверка веб-интерфейса..."
 if command -v curl &> /dev/null; then
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" http://localhost:8001 2>/dev/null)
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" http://localhost:8081 2>/dev/null)
     if [ "$HTTP_CODE" = "200" ]; then
         echo "   ✅ Веб-интерфейс доступен (HTTP $HTTP_CODE)"
     else
@@ -109,30 +109,30 @@ echo "📋 Итоговая информация:"
 echo "=========================="
 echo ""
 echo "🌐 Веб-интерфейс:"
-if netstat -tuln 2>/dev/null | grep -q ":8001"; then
-    echo "   http://$(hostname -I | awk '{print $1}'):8001"
-elif netstat -tuln 2>/dev/null | grep -q ":8000"; then
-    echo "   http://$(hostname -I | awk '{print $1}'):8000"
+if netstat -tuln 2>/dev/null | grep -q ":8081"; then
+    echo "   http://$(hostname -I | awk '{print $1}'):8081"
+elif netstat -tuln 2>/dev/null | grep -q ":8080"; then
+    echo "   http://$(hostname -I | awk '{print $1}'):8080"
 else
-    echo "   http://ваш_сервер_ip:8000 (или 8001)"
+    echo "   http://ваш_сервер_ip:8080"
 fi
 echo ""
 echo "📚 API документация:"
-if netstat -tuln 2>/dev/null | grep -q ":8001"; then
-    echo "   http://$(hostname -I | awk '{print $1}'):8001/docs"
-elif netstat -tuln 2>/dev/null | grep -q ":8000"; then
-    echo "   http://$(hostname -I | awk '{print $1}'):8000/docs"
+if netstat -tuln 2>/dev/null | grep -q ":8081"; then
+    echo "   http://$(hostname -I | awk '{print $1}'):8081/docs"
+elif netstat -tuln 2>/dev/null | grep -q ":8080"; then
+    echo "   http://$(hostname -I | awk '{print $1}'):8080/docs"
 else
-    echo "   http://ваш_сервер_ip:8000/docs (или 8001)"
+    echo "   http://ваш_сервер_ip:8080/docs"
 fi
 echo ""
 echo "⚙️ Админ-панель:"
-if netstat -tuln 2>/dev/null | grep -q ":8001"; then
-    echo "   http://$(hostname -I | awk '{print $1}'):8001/admin"
-elif netstat -tuln 2>/dev/null | grep -q ":8000"; then
-    echo "   http://$(hostname -I | awk '{print $1}'):8000/admin"
+if netstat -tuln 2>/dev/null | grep -q ":8081"; then
+    echo "   http://$(hostname -I | awk '{print $1}'):8081/admin"
+elif netstat -tuln 2>/dev/null | grep -q ":8080"; then
+    echo "   http://$(hostname -I | awk '{print $1}'):8080/admin"
 else
-    echo "   http://ваш_сервер_ip:8000/admin (или 8001)"
+    echo "   http://ваш_сервер_ip:8080/admin"
 fi
 echo ""
 echo "📊 Полезные команды:"

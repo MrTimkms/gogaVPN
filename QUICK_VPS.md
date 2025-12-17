@@ -29,7 +29,7 @@ chmod +x setup.sh && ./setup.sh
 
 ### 5. Готово! 
 
-Откройте: **http://ваш_сервер_ip:8000**
+Откройте: **http://ваш_сервер_ip:8080**
 
 ---
 
@@ -51,7 +51,7 @@ server {
     listen 80;
     server_name your-domain.com;
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }

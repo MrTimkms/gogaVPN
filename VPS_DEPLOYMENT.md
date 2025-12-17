@@ -127,7 +127,7 @@ server {
     server_name your-domain.com www.your-domain.com;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -188,7 +188,7 @@ sudo ufw status
 
 ## ✅ Проверка работы
 
-1. **Веб-интерфейс**: http://your-domain.com или http://ваш_ip:8000
+1. **Веб-интерфейс**: http://your-domain.com или http://ваш_ip:8080
 2. **API документация**: http://your-domain.com/docs
 3. **Админ-панель**: http://your-domain.com/admin
 4. **Telegram бот**: Отправьте `/start` вашему боту
@@ -289,16 +289,16 @@ sudo systemctl start fail2ban
 
 ## ❓ Решение проблем
 
-### Порт 8000 занят
+### Порт 8080 занят
 
-**Ошибка:** `failed to bind host port 0.0.0.0:8000/tcp: address already in use`
+**Ошибка:** `failed to bind host port 0.0.0.0:8080/tcp: address already in use`
 
 **Решение 1: Найти и остановить процесс**
 ```bash
 # Проверить, что использует порт
-sudo lsof -i :8000
+sudo lsof -i :8080
 # или
-sudo netstat -tulpn | grep :8000
+sudo netstat -tulpn | grep :8080
 
 # Остановить процесс (замените PID на номер процесса)
 sudo kill -9 PID
@@ -315,7 +315,7 @@ chmod +x fix_port.sh
 Или вручную отредактируйте `docker-compose.yml`:
 ```yaml
 ports:
-  - "8001:8000"  # Внешний:Внутренний (теперь доступ по порту 8001)
+  - "8081:8000"  # Внешний:Внутренний (теперь доступ по порту 8081)
 ```
 
 После изменения:
@@ -323,7 +323,7 @@ ports:
 docker compose up -d
 ```
 
-Проект будет доступен по адресу: `http://ваш_сервер_ip:8001`
+Проект будет доступен по адресу: `http://ваш_сервер_ip:8081`
 
 ### Бот не отвечает
 ```bash

@@ -39,7 +39,7 @@ chmod +x setup.sh
 
 ## ✅ Готово!
 
-Откройте: http://localhost:8000
+Откройте: http://localhost:8080
 
 ---
 
