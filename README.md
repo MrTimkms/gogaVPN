@@ -37,6 +37,34 @@
 
 ---
 
+## ✅ Проверка работы
+
+### Быстрая проверка:
+```bash
+# Статус контейнеров
+docker compose ps
+
+# Все должны быть "Up"
+```
+
+### Полная проверка:
+```bash
+# Linux/Mac
+chmod +x check_status.sh && ./check_status.sh
+
+# Windows
+check_status.bat
+```
+
+Скрипт проверит:
+- ✅ Docker установлен
+- ✅ Контейнеры запущены
+- ✅ Порт открыт
+- ✅ Веб-интерфейс доступен
+- ✅ Конфигурация настроена
+
+---
+
 ## Установка без Docker (для разработки)
 
 ### 1. Клонирование и установка зависимостей
@@ -80,20 +108,6 @@ uvicorn app.main:app --reload --port 8000
 
 # Telegram Bot
 python -m app.bot.main
-```
-
-### 5. Запуск вручную
-
-В разных терминалах:
-
-```bash
-# Backend API
-uvicorn app.main:app --reload --port 8000
-
-# Telegram Bot
-python -m app.bot.main
-
-# Планировщик (запускается автоматически с ботом)
 ```
 
 ## Структура проекта
@@ -156,7 +170,11 @@ python -m app.bot.main
 
 После запуска сервера доступна по адресу: `http://localhost:8000/docs`
 
+## Развертывание на VPS
+
+- **Быстрая инструкция**: [QUICK_VPS.md](QUICK_VPS.md)
+- **Подробная инструкция**: [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)
+
 ## Лицензия
 
 MIT
-
