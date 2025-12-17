@@ -25,25 +25,17 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-### 4️⃣ Настройте .env файл
-
-Откройте файл `.env` и укажите:
-
-```env
-BOT_TOKEN=ваш_токен_от_BotFather
-ADMIN_TELEGRAM_IDS=ваш_telegram_id
-TELEGRAM_BOT_NAME=имя_вашего_бота
-```
+Скрипт автоматически запросит у вас:
+- 🤖 **BOT_TOKEN** - токен бота от @BotFather
+- 👤 **ADMIN_TELEGRAM_IDS** - ваш Telegram ID
+- 📝 **TELEGRAM_BOT_NAME** - имя бота (опционально)
 
 **Как получить:**
-- **BOT_TOKEN**: Напишите [@BotFather](https://t.me/BotFather) → `/newbot`
-- **ADMIN_TELEGRAM_IDS**: Напишите [@userinfobot](https://t.me/userinfobot) → скопируйте ID
-- **TELEGRAM_BOT_NAME**: Имя бота без @
+- **BOT_TOKEN**: Напишите [@BotFather](https://t.me/BotFather) → `/newbot` → скопируйте токен
+- **ADMIN_TELEGRAM_IDS**: Напишите [@userinfobot](https://t.me/userinfobot) → `/start` → скопируйте ID
+- **TELEGRAM_BOT_NAME**: Имя вашего бота без символа @
 
-### 5️⃣ Перезапустите
-```bash
-docker compose restart
-```
+Все данные автоматически сохранятся в файл `.env`!
 
 ## ✅ Готово!
 
