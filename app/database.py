@@ -3,7 +3,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
-# Создаем движок БД
 if settings.database_url.startswith("sqlite"):
     engine = create_engine(
         settings.database_url,
@@ -13,12 +12,10 @@ else:
     engine = create_engine(settings.database_url)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
 
 def get_db():
-    """Dependency для получения сессии БД"""
     db = SessionLocal()
     try:
         yield db

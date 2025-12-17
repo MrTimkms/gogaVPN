@@ -83,6 +83,9 @@
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#debtors" type="button">Должники</button>
                 </li>
                 <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#servers" type="button">Серверы</button>
+                </li>
+                <li class="nav-item" role="presentation">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#settings" type="button">Настройки</button>
                 </li>
             </ul>
@@ -130,6 +133,8 @@
                                             <th>Telegram ID</th>
                                             <th>Баланс</th>
                                             <th>Дата списания</th>
+                                            <th>Сертификатов</th>
+                                            <th>Сервер</th>
                                             <th>Статус</th>
                                             <th>Действия</th>
                                         </tr>
@@ -181,6 +186,46 @@
                                         </tr>
                                     </thead>
                                     <tbody id="debtorsTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Серверы -->
+                <div class="tab-pane fade" id="servers">
+                    <div class="card admin-card">
+                        <div class="card-body">
+                            <h5 class="card-title">Управление серверами</h5>
+                            
+                            <div class="mb-4">
+                                <h6>Добавить новый сервер</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="newServerName" placeholder="Название сервера">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="newServerIP" placeholder="IP адрес">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-primary" onclick="createServer()">Добавить сервер</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Название</th>
+                                            <th>IP адрес</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="serversTableBody"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -294,6 +339,18 @@
                             </button>
                         </div>
                         <small class="text-muted">Уведомление будет отправлено пользователю через бота</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Количество сертификатов</label>
+                        <input type="number" class="form-control" id="modalUserCertificatesCount" min="1" value="1">
+                        <button class="btn btn-success mt-2" onclick="updateCertificatesCount()">Сохранить</button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Сервер</label>
+                        <select class="form-control" id="modalUserServer">
+                            <option value="">Не назначен</option>
+                        </select>
+                        <button class="btn btn-success mt-2" onclick="updateServer()">Сохранить сервер</button>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">VPN Ключ</label>

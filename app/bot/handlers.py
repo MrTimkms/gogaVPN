@@ -33,18 +33,20 @@ async def cmd_start(message: Message, state: FSMContext):
         is_admin_user = is_admin(message.from_user.id)
         
         if not user:
-            # Создаем нового пользователя
+            user_name = message.from_user.first_name or "Пользователь"
             user = User(
                 telegram_id=message.from_user.id,
-                name=message.from_user.first_name or "Пользователь",
+                name=user_name,
                 balance=0.0,
                 start_date=date.today(),
                 next_billing_date=date.today(),
                 status="active",
-                is_ghost=False
+                is_ghost=False,
+                certificates_count=1
             )
             db.add(user)
             db.commit()
+            db.refresh(user)
             
             welcome_text = "👋 Добро пожаловать! Вы зарегистрированы в системе.\n\n"
             if is_admin_user:
@@ -54,6 +56,22 @@ async def cmd_start(message: Message, state: FSMContext):
                 welcome_text + "\nИспользуйте меню для навигации.",
                 reply_markup=get_main_menu(is_admin_user=is_admin_user)
             )
+            
+            bot = message.bot
+            admin_ids = settings.admin_ids_list
+            for admin_id in admin_ids:
+                try:
+                    await bot.send_message(
+                        admin_id,
+                        f"🆕 <b>Новый пользователь зарегистрирован</b>\n\n"
+                        f"ID: {user.id}\n"
+                        f"Имя: {user_name}\n"
+                        f"Telegram ID: {message.from_user.id}\n"
+                        f"Дата регистрации: {date.today().strftime('%d.%m.%Y')}",
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    logger.error(f"Ошибка отправки уведомления админу {admin_id}: {e}")
         else:
             if user.is_ghost:
                 await message.answer(
@@ -93,6 +111,8 @@ async def show_profile(message: Message):
             f"Баланс: {user.balance:.2f} ₽\n"
             f"Тариф: {price:.2f} ₽/мес\n"
             f"Следующее списание: {user.next_billing_date.strftime('%d.%m.%Y')}\n"
+            f"Сертификатов: {user.certificates_count}\n"
+            f"Сервер: {user.server_name or 'не назначен'}\n"
             f"Статус: {status_emoji} {status_text}"
         )
         
@@ -206,31 +226,27 @@ async def show_payment_info(message: Message, state: FSMContext):
 
 @router.message(PaymentStates.waiting_for_screenshot, F.photo)
 async def process_payment_screenshot(message: Message, state: FSMContext):
-    """Обрабатывает скриншот чека"""
     bot = message.bot
     is_admin_user = is_admin(message.from_user.id)
     await message.answer(
-        "✅ Скриншот получен. Администратор проверит оплату и пополнит ваш баланс.\n"
+        "✅ Чек получен. Администратор проверит оплату и пополнит ваш баланс.\n"
         "Обычно это занимает несколько часов.",
         reply_markup=get_main_menu(is_admin_user=is_admin_user)
     )
     await state.clear()
     
-    # Уведомляем админов
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.telegram_id == message.from_user.id).first()
         if user:
-            # Отправляем уведомление админам
-            from app.config import settings
             admin_message = (
-                f"📸 Новый скриншот оплаты от пользователя:\n"
-                f"Имя: {user.name}\n"
+                f"📸 <b>Новый чек об оплате</b>\n\n"
+                f"Пользователь: {user.name}\n"
+                f"ID: {user.id}\n"
                 f"Telegram ID: {user.telegram_id}\n"
                 f"Текущий баланс: {user.balance:.2f} ₽"
             )
             
-            # Пересылаем фото админам
             for admin_id in settings.admin_ids_list:
                 try:
                     await bot.forward_message(
@@ -238,7 +254,45 @@ async def process_payment_screenshot(message: Message, state: FSMContext):
                         from_chat_id=message.chat.id,
                         message_id=message.message_id
                     )
-                    await bot.send_message(admin_id, admin_message)
+                    await bot.send_message(admin_id, admin_message, parse_mode="HTML")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки уведомления админу {admin_id}: {e}")
+    finally:
+        db.close()
+
+
+@router.message(PaymentStates.waiting_for_screenshot, F.document)
+async def process_payment_document(message: Message, state: FSMContext):
+    bot = message.bot
+    is_admin_user = is_admin(message.from_user.id)
+    await message.answer(
+        "✅ Документ получен. Администратор проверит оплату и пополнит ваш баланс.\n"
+        "Обычно это занимает несколько часов.",
+        reply_markup=get_main_menu(is_admin_user=is_admin_user)
+    )
+    await state.clear()
+    
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.telegram_id == message.from_user.id).first()
+        if user:
+            admin_message = (
+                f"📄 <b>Новый документ об оплате</b>\n\n"
+                f"Пользователь: {user.name}\n"
+                f"ID: {user.id}\n"
+                f"Telegram ID: {user.telegram_id}\n"
+                f"Текущий баланс: {user.balance:.2f} ₽\n"
+                f"Файл: {message.document.file_name}"
+            )
+            
+            for admin_id in settings.admin_ids_list:
+                try:
+                    await bot.forward_message(
+                        chat_id=admin_id,
+                        from_chat_id=message.chat.id,
+                        message_id=message.message_id
+                    )
+                    await bot.send_message(admin_id, admin_message, parse_mode="HTML")
                 except Exception as e:
                     logger.error(f"Ошибка отправки уведомления админу {admin_id}: {e}")
     finally:

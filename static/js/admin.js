@@ -33,6 +33,7 @@ async function adminLogin() {
     loadGhostUsers();
     loadDebtors();
     loadSettings();
+    loadServers();
 }
 
 // Импорт CSV
@@ -118,6 +119,8 @@ function displayUsers(users) {
                 <td>${telegramLink}</td>
                 <td>${user.balance.toFixed(2)} ₽</td>
                 <td>${billingDate} ${notifyStatus}</td>
+                <td>${user.certificates_count || 1}</td>
+                <td>${user.server_name || '-'}</td>
                 <td>${getStatusBadge(user.status)}</td>
                 <td>
                     <div class="btn-group" role="group">
@@ -331,7 +334,11 @@ async function openUserModal(userId) {
         document.getElementById('modalUserEnableNotifications').checked = user.enable_billing_notifications !== false;
         document.getElementById('modalUserEnableNegativeBalanceNotifications').checked = user.enable_negative_balance_notifications !== false;
         document.getElementById('modalUserNotifyDays').value = user.notify_before_billing_days || 2;
-        document.getElementById('notificationMessage').value = ''; // Очищаем поле уведомления
+        document.getElementById('modalUserCertificatesCount').value = user.certificates_count || 1;
+        document.getElementById('notificationMessage').value = '';
+        
+        await loadServersForSelect();
+        document.getElementById('modalUserServer').value = user.server_name || '';
         
         const modal = new bootstrap.Modal(document.getElementById('userModal'));
         modal.show();
@@ -803,6 +810,153 @@ function exportUsersToCSV() {
 }
 
 // Вспомогательные функции
+async function updateCertificatesCount() {
+    const userId = parseInt(document.getElementById('modalUserId').value);
+    const count = parseInt(document.getElementById('modalUserCertificatesCount').value);
+    
+    if (!count || count < 1) {
+        alert('Количество сертификатов должно быть не менее 1');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ certificates_count: count })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка обновления');
+        }
+        
+        alert('Количество сертификатов обновлено');
+        loadUsers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+async function updateServer() {
+    const userId = parseInt(document.getElementById('modalUserId').value);
+    const serverName = document.getElementById('modalUserServer').value;
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ server_name: serverName || null })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка обновления');
+        }
+        
+        alert('Сервер обновлен');
+        loadUsers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+async function loadServersForSelect() {
+    try {
+        const response = await fetch(`/api/admin/servers?telegram_id=${adminTelegramId}`);
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        
+        const servers = await response.json();
+        const select = document.getElementById('modalUserServer');
+        select.innerHTML = '<option value="">Не назначен</option>';
+        
+        servers.forEach(server => {
+            const option = document.createElement('option');
+            option.value = server.name;
+            option.textContent = `${server.name} (${server.ip_address})`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки серверов:', error);
+    }
+}
+
+async function loadServers() {
+    try {
+        const response = await fetch(`/api/admin/servers?telegram_id=${adminTelegramId}`);
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        
+        const servers = await response.json();
+        const tbody = document.getElementById('serversTableBody');
+        tbody.innerHTML = servers.map(server => `
+            <tr>
+                <td>${server.id}</td>
+                <td>${server.name}</td>
+                <td>${server.ip_address}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="deleteServer(${server.id})" title="Удалить">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Ошибка загрузки серверов:', error);
+    }
+}
+
+async function createServer() {
+    const name = document.getElementById('newServerName').value.trim();
+    const ip = document.getElementById('newServerIP').value.trim();
+    
+    if (!name || !ip) {
+        alert('Заполните все поля');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/servers?telegram_id=${adminTelegramId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, ip_address: ip })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка создания');
+        }
+        
+        alert('Сервер создан');
+        document.getElementById('newServerName').value = '';
+        document.getElementById('newServerIP').value = '';
+        loadServers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+async function deleteServer(serverId) {
+    if (!confirm('Удалить сервер? Пользователи с этим сервером не будут затронуты, но сервер будет удален из списка.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/servers/${serverId}?telegram_id=${adminTelegramId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка удаления');
+        }
+        
+        alert('Сервер удален');
+        loadServers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
 function getStatusBadge(status) {
     const badges = {
         'active': '<span class="badge bg-success">Активен</span>',

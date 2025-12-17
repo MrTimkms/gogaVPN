@@ -6,39 +6,36 @@ from app.database import Base
 
 
 class User(Base):
-    """Модель пользователя"""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(Integer, unique=True, nullable=True, index=True)
     name = Column(String(255), nullable=False)
     balance = Column(Float, default=0.0)
-    start_date = Column(Date, nullable=False)  # Дата начала подписки
-    next_billing_date = Column(Date, nullable=False)  # Дата следующего списания
-    status = Column(String(50), default="active")  # active, blocked, debt
-    key_data = Column(Text, nullable=True)  # VPN ключ
-    server_name = Column(String(100), nullable=True)  # Сервер 1, 2 или 3
-    is_ghost = Column(Boolean, default=False)  # Спящий профиль без telegram_id
-    # Настройки уведомлений
-    enable_billing_notifications = Column(Boolean, default=True)  # Включены ли уведомления о списании
-    notify_before_billing_days = Column(Integer, default=2)  # За сколько дней до списания уведомлять
-    enable_negative_balance_notifications = Column(Boolean, default=True)  # Включены ли уведомления об отрицательном балансе
+    start_date = Column(Date, nullable=False)
+    next_billing_date = Column(Date, nullable=False)
+    status = Column(String(50), default="active")
+    key_data = Column(Text, nullable=True)
+    server_name = Column(String(100), nullable=True)
+    certificates_count = Column(Integer, default=1)
+    is_ghost = Column(Boolean, default=False)
+    enable_billing_notifications = Column(Boolean, default=True)
+    notify_before_billing_days = Column(Integer, default=2)
+    enable_negative_balance_notifications = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
-    # Связи
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 
 class Transaction(Base):
-    """Модель транзакции (пополнение/списание)"""
     __tablename__ = "transactions"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    amount = Column(Float, nullable=False)  # Может быть отрицательным для списаний
-    transaction_type = Column(String(50), nullable=False)  # deposit, withdrawal, adjustment
+    amount = Column(Float, nullable=False)
+    transaction_type = Column(String(50), nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     
@@ -46,13 +43,12 @@ class Transaction(Base):
 
 
 class Notification(Base):
-    """Модель уведомлений"""
     __tablename__ = "notifications"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     message = Column(Text, nullable=False)
-    notification_type = Column(String(50), nullable=False)  # billing, balance, key_update, reminder
+    notification_type = Column(String(50), nullable=False)
     sent = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     
@@ -60,11 +56,20 @@ class Notification(Base):
 
 
 class SystemSettings(Base):
-    """Настройки системы"""
     __tablename__ = "system_settings"
     
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String(100), unique=True, nullable=False)
     value = Column(Text, nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Server(Base):
+    __tablename__ = "servers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    ip_address = Column(String(45), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

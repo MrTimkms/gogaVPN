@@ -3,19 +3,12 @@ from typing import List
 
 
 class Settings(BaseSettings):
-    # Database
     database_url: str = "sqlite:///./vpn_billing.db"
-    
-    # Telegram Bot
     bot_token: str
-    admin_telegram_ids: str = ""  # Comma-separated
+    admin_telegram_ids: str = ""
     telegram_bot_name: str = ""
-    
-    # Server
     secret_key: str = "change-me-in-production"
     debug: bool = True
-    
-    # Billing
     default_subscription_price: float = 100.0
     
     class Config:

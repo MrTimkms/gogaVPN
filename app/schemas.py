@@ -13,6 +13,7 @@ class UserBase(BaseModel):
     status: str = "active"
     key_data: Optional[str] = None
     server_name: Optional[str] = None
+    certificates_count: int = 1
     enable_billing_notifications: bool = True
     notify_before_billing_days: int = 2
     enable_negative_balance_notifications: bool = True
@@ -31,6 +32,7 @@ class UserUpdate(BaseModel):
     status: Optional[str] = None
     key_data: Optional[str] = None
     server_name: Optional[str] = None
+    certificates_count: Optional[int] = None
     enable_billing_notifications: Optional[bool] = None
     notify_before_billing_days: Optional[int] = None
     enable_negative_balance_notifications: Optional[bool] = None
@@ -108,4 +110,25 @@ class SBPInfoUpdate(BaseModel):
 class SendNotificationRequest(BaseModel):
     user_id: int
     message: str
+
+
+class ServerCreate(BaseModel):
+    name: str
+    ip_address: str
+
+
+class ServerUpdate(BaseModel):
+    name: Optional[str] = None
+    ip_address: Optional[str] = None
+
+
+class ServerResponse(BaseModel):
+    id: int
+    name: str
+    ip_address: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
 
