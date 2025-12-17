@@ -25,7 +25,7 @@ services:
       ADMIN_TELEGRAM_IDS: ${ADMIN_TELEGRAM_IDS}
       TELEGRAM_BOT_NAME: ${TELEGRAM_BOT_NAME}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      DEBUG: ${DEBUG:-False}
+      DEBUG: ${DEBUG:-True}
       DEFAULT_SUBSCRIPTION_PRICE: ${DEFAULT_SUBSCRIPTION_PRICE:-100}
     ports:
       - "8000:8000"
@@ -35,7 +35,9 @@ services:
     volumes:
       - ./static:/app/static
       - ./templates:/app/templates
+      - ./alembic:/app/alembic
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
 
   bot:
     build: .
@@ -45,11 +47,14 @@ services:
       ADMIN_TELEGRAM_IDS: ${ADMIN_TELEGRAM_IDS}
       TELEGRAM_BOT_NAME: ${TELEGRAM_BOT_NAME}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      DEBUG: ${DEBUG:-False}
+      DEBUG: ${DEBUG:-True}
       DEFAULT_SUBSCRIPTION_PRICE: ${DEFAULT_SUBSCRIPTION_PRICE:-100}
     depends_on:
-      - db
-      - backend
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    restart: unless-stopped
     command: python -m app.bot.main
 
 volumes:

@@ -10,13 +10,40 @@
 - **Планировщик:** APScheduler
 - **Frontend:** HTML/JS с Bootstrap
 
-## Быстрый старт
+## 🚀 Быстрый старт через Docker (РЕКОМЕНДУЕТСЯ)
+
+**Не знакомы с Docker?** Всё автоматически установится за вас!
+
+### Простая установка (3 шага):
+
+1. **Клонируйте проект:**
+   ```bash
+   gh repo clone MrTimkms/gogaVPN
+   cd gogaVPN
+   ```
+
+2. **Запустите скрипт установки:**
+   - **Windows**: `setup.bat`
+   - **Linux/Mac**: `chmod +x setup.sh && ./setup.sh`
+
+3. **Настройте .env файл:**
+   - Откройте `.env`
+   - Укажите `BOT_TOKEN`, `ADMIN_TELEGRAM_IDS`, `TELEGRAM_BOT_NAME`
+   - Перезапустите: `docker compose restart`
+
+**Готово!** Откройте http://localhost:8000
+
+📖 **Подробная инструкция**: [DOCKER_SETUP.md](DOCKER_SETUP.md)
+
+---
+
+## Установка без Docker (для разработки)
 
 ### 1. Клонирование и установка зависимостей
 
 ```bash
 git clone <repository>
-cd ТГБотVPN
+cd gogaVPN
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -24,27 +51,35 @@ pip install -r requirements.txt
 
 ### 2. Настройка окружения
 
-Скопируйте `.env.example` в `.env` и заполните необходимые параметры:
+Скопируйте `env.example.txt` в `.env` и заполните:
 
 ```bash
-cp .env.example .env
+cp env.example.txt .env
 ```
 
 Обязательно укажите:
 - `BOT_TOKEN` - токен вашего Telegram-бота
 - `ADMIN_TELEGRAM_IDS` - ID администраторов через запятую
-- `DATABASE_URL` - строка подключения к БД
+- `DATABASE_URL` - строка подключения к БД (для разработки можно использовать SQLite)
 
 ### 3. Инициализация базы данных
 
 ```bash
-python -m alembic upgrade head
+alembic upgrade head
+# или
+python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
 ```
 
-### 4. Запуск через Docker Compose (рекомендуется)
+### 4. Запуск
+
+В разных терминалах:
 
 ```bash
-docker-compose up -d
+# Backend API
+uvicorn app.main:app --reload --port 8000
+
+# Telegram Bot
+python -m app.bot.main
 ```
 
 ### 5. Запуск вручную
