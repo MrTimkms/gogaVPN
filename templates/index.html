@@ -140,7 +140,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно для QR-кода -->
+    <!-- Модальное окно для QR-кода подключения -->
     <div class="modal fade" id="qrModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -150,6 +150,49 @@
                 </div>
                 <div class="modal-body text-center">
                     <div id="qrCodeImage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для QR-кода СБП -->
+    <div class="modal fade" id="sbpQRModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">QR-код для оплаты через СБП</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="sbpQRImage" src="" alt="QR-код СБП" class="img-fluid" style="max-width: 100%;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно с информацией об оплате -->
+    <div class="modal fade" id="paymentInfoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">💰 Пополнение баланса</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>💳 Оплата через СБП:</h6>
+                    <div id="paymentInfoContent">
+                        <p class="text-muted">Загрузка информации...</p>
+                    </div>
+                    <hr>
+                    <h6>📝 Как оплатить:</h6>
+                    <ol>
+                        <li>Откройте приложение вашего банка</li>
+                        <li>Выберите "Оплата по QR-коду" или "Перевод по номеру телефона"</li>
+                        <li>Отсканируйте QR-код или введите номер телефона</li>
+                        <li>Укажите сумму пополнения</li>
+                        <li>После оплаты отправьте скриншот чека в бот для подтверждения</li>
+                    </ol>
+                    <p class="text-muted"><i class="bi bi-lightbulb"></i> Или используйте автоплатеж для автоматического пополнения</p>
                 </div>
             </div>
         </div>

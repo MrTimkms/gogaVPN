@@ -99,17 +99,100 @@ async function loadSubscriptionPrice() {
 // Загрузка информации о СБП
 async function loadSBPInfo() {
     try {
-        // Для пользователей СБП информация доступна через бота
-        // Здесь можно добавить API endpoint если нужно
+        const response = await fetch('/api/users/sbp-info');
+        if (!response.ok) {
+            throw new Error('Не удалось загрузить информацию о СБП');
+        }
+        const sbpInfo = await response.json();
+        
         const sbpContainer = document.getElementById('sbpPaymentInfo');
         if (sbpContainer) {
-            sbpContainer.innerHTML = `
-                <p><i class="bi bi-phone"></i> Оплата через приложение банка</p>
-                <p class="small text-muted">Используйте QR-код или номер телефона</p>
-            `;
+            let html = '<div class="sbp-info">';
+            
+            if (sbpInfo.phone) {
+                html += `<p><i class="bi bi-phone"></i> Телефон: <code>${sbpInfo.phone}</code></p>`;
+            }
+            
+            if (sbpInfo.account) {
+                html += `<p><i class="bi bi-bank"></i> Счет: <code>${sbpInfo.account}</code></p>`;
+            }
+            
+            if (sbpInfo.qr_code_url) {
+                html += `<div class="mt-2">
+                    <img src="${sbpInfo.qr_code_url}" alt="QR-код СБП" class="img-fluid" style="max-width: 200px; cursor: pointer;" onclick="showSBPQR('${sbpInfo.qr_code_url}')">
+                    <p class="small text-muted mt-1">Нажмите на QR-код для увеличения</p>
+                </div>`;
+            }
+            
+            if (!sbpInfo.phone && !sbpInfo.account && !sbpInfo.qr_code_url) {
+                html += '<p class="text-muted">Информация о СБП пока не настроена</p>';
+            }
+            
+            html += '</div>';
+            sbpContainer.innerHTML = html;
         }
     } catch (error) {
         console.error('Error loading SBP info:', error);
+        const sbpContainer = document.getElementById('sbpPaymentInfo');
+        if (sbpContainer) {
+            sbpContainer.innerHTML = '<p class="text-muted">Не удалось загрузить информацию о СБП</p>';
+        }
+    }
+}
+
+// Показать QR-код СБП в модальном окне
+function showSBPQR(qrCodeUrl) {
+    const modal = document.getElementById('sbpQRModal');
+    if (modal) {
+        const img = document.getElementById('sbpQRImage');
+        if (img) {
+            img.src = qrCodeUrl;
+        }
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+
+// Загрузка информации об оплате в модальное окно
+async function loadPaymentInfo() {
+    try {
+        const response = await fetch('/api/users/sbp-info');
+        if (!response.ok) {
+            throw new Error('Не удалось загрузить информацию о СБП');
+        }
+        const sbpInfo = await response.json();
+        
+        const content = document.getElementById('paymentInfoContent');
+        if (content) {
+            let html = '';
+            
+            if (sbpInfo.phone) {
+                html += `<p><i class="bi bi-phone"></i> Телефон: <code>${sbpInfo.phone}</code></p>`;
+            }
+            
+            if (sbpInfo.account) {
+                html += `<p><i class="bi bi-bank"></i> Счет: <code>${sbpInfo.account}</code></p>`;
+            }
+            
+            if (sbpInfo.qr_code_url) {
+                html += `<div class="text-center mt-3">
+                    <img src="${sbpInfo.qr_code_url}" alt="QR-код СБП" class="img-fluid" style="max-width: 250px; cursor: pointer;" onclick="showSBPQR('${sbpInfo.qr_code_url}')">
+                    <p class="small text-muted mt-2">Нажмите на QR-код для увеличения</p>
+                </div>`;
+            }
+            
+            if (!sbpInfo.phone && !sbpInfo.account && !sbpInfo.qr_code_url) {
+                html = '<p class="text-muted">Информация о СБП пока не настроена администратором</p>';
+            }
+            
+            content.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('Error loading payment info:', error);
+        const content = document.getElementById('paymentInfoContent');
+        if (content) {
+            content.innerHTML = '<p class="text-danger">Не удалось загрузить информацию о СБП</p>';
+        }
     }
 }
 
@@ -165,7 +248,16 @@ function showQR() {
 
 // Информация об оплате
 function showPaymentInfo() {
-    alert('Оплата через СБП:\n\n1. Откройте приложение вашего банка\n2. Выберите "Оплата по QR-коду" или "Перевод по номеру телефона"\n3. Отсканируйте QR-код или введите номер телефона\n4. Укажите сумму пополнения\n5. После оплаты отправьте скриншот чека в бот для подтверждения.\n\nИли используйте автоплатеж для автоматического пополнения.');
+    const modal = document.getElementById('paymentInfoModal');
+    if (modal) {
+        // Загружаем актуальную информацию о СБП
+        loadPaymentInfo();
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    } else {
+        // Fallback на alert если модальное окно не найдено
+        alert('Оплата через СБП:\n\n1. Откройте приложение вашего банка\n2. Выберите "Оплата по QR-коду" или "Перевод по номеру телефона"\n3. Отсканируйте QR-код или введите номер телефона\n4. Укажите сумму пополнения\n5. После оплаты отправьте скриншот чека в бот для подтверждения.\n\nИли используйте автоплатеж для автоматического пополнения.');
+    }
 }
 
 // Выход

@@ -176,11 +176,26 @@ async def show_payment_info(message: Message, state: FSMContext):
         if sbp_info.get('qr_code_path'):
             try:
                 from aiogram.types import FSInputFile
-                qr_file = FSInputFile(sbp_info['qr_code_path'])
-                await message.answer_photo(
-                    photo=qr_file,
-                    caption="📱 QR-код для оплаты через СБП"
-                )
+                import os
+                qr_path = sbp_info['qr_code_path']
+                
+                # Обрабатываем путь
+                if not os.path.isabs(qr_path):
+                    # Если это только имя файла (без директории), добавляем static/uploads/
+                    if '/' not in qr_path and '\\' not in qr_path:
+                        qr_path = os.path.join(os.getcwd(), "static", "uploads", qr_path)
+                    else:
+                        qr_path = os.path.join(os.getcwd(), qr_path)
+                
+                # Проверяем существование файла
+                if os.path.exists(qr_path):
+                    qr_file = FSInputFile(qr_path)
+                    await message.answer_photo(
+                        photo=qr_file,
+                        caption="📱 QR-код для оплаты через СБП"
+                    )
+                else:
+                    logger.warning(f"QR-код не найден по пути: {qr_path}")
             except Exception as e:
                 logger.error(f"Ошибка отправки QR-кода: {e}")
         
@@ -397,9 +412,15 @@ async def sbp_settings(message: Message):
                 from aiogram.types import FSInputFile
                 import os
                 qr_path = sbp_info['qr_code_path']
-                # Если путь относительный, делаем абсолютным
+                
+                # Обрабатываем путь
                 if not os.path.isabs(qr_path):
-                    qr_path = os.path.join(os.getcwd(), qr_path)
+                    # Если это только имя файла (без директории), добавляем static/uploads/
+                    if '/' not in qr_path and '\\' not in qr_path:
+                        qr_path = os.path.join(os.getcwd(), "static", "uploads", qr_path)
+                    else:
+                        qr_path = os.path.join(os.getcwd(), qr_path)
+                
                 if os.path.exists(qr_path):
                     qr_file = FSInputFile(qr_path)
                     await message.answer_photo(

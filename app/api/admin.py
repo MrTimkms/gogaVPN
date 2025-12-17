@@ -230,11 +230,16 @@ async def update_sbp_info(
     
     # Обработка загрузки QR-кода
     qr_code_path = sbp_info.qr_code_path
-    if qr_code_path and not qr_code_path.startswith('/'):
-        # Сохраняем путь относительно static
+    if qr_code_path:
         import os
-        qr_code_path = f"static/uploads/{qr_code_path}"
-        os.makedirs("static/uploads", exist_ok=True)
+        # Если это только имя файла (без директории), добавляем static/uploads/
+        if '/' not in qr_code_path and '\\' not in qr_code_path and not os.path.isabs(qr_code_path):
+            qr_code_path = f"static/uploads/{qr_code_path}"
+            os.makedirs("static/uploads", exist_ok=True)
+        elif not qr_code_path.startswith('static/') and not os.path.isabs(qr_code_path):
+            # Если путь относительный, но не начинается с static/, добавляем
+            qr_code_path = f"static/uploads/{qr_code_path}"
+            os.makedirs("static/uploads", exist_ok=True)
     
     set_sbp_info(
         db,

@@ -46,3 +46,47 @@ def get_user_transactions(user_id: int, db: Session = Depends(get_db)):
     
     return transactions
 
+
+@router.get("/sbp-info")
+def get_sbp_info_for_users(db: Session = Depends(get_db)):
+    """Получает информацию о СБП для пользователей"""
+    from app.services.billing import get_sbp_info
+    sbp_info = get_sbp_info(db)
+    
+    # Если есть QR-код, формируем URL для доступа к нему
+    qr_code_url = None
+    if sbp_info.get('qr_code_path'):
+        import os
+        qr_path = sbp_info['qr_code_path']
+        
+        # Нормализуем путь
+        if os.path.isabs(qr_path):
+            # Для абсолютного пути извлекаем часть после 'static/'
+            if 'static/' in qr_path:
+                static_index = qr_path.find('static/')
+                if static_index != -1:
+                    qr_code_url = f"/{qr_path[static_index:]}"
+            # Если путь абсолютный, но не содержит 'static/', проверяем существование
+            elif os.path.exists(qr_path):
+                # Пытаемся найти относительный путь
+                cwd = os.getcwd()
+                if qr_path.startswith(cwd):
+                    rel_path = os.path.relpath(qr_path, cwd)
+                    if rel_path.startswith('static/'):
+                        qr_code_url = f"/{rel_path}"
+        else:
+            # Для относительного пути
+            if qr_path.startswith('static/'):
+                qr_code_url = f"/{qr_path}"
+            elif '/' not in qr_path and '\\' not in qr_path:
+                # Если это только имя файла (без директории), добавляем static/uploads/
+                qr_code_url = f"/static/uploads/{qr_path}"
+            else:
+                qr_code_url = f"/static/{qr_path}"
+    
+    return {
+        "phone": sbp_info.get('phone'),
+        "account": sbp_info.get('account'),
+        "qr_code_url": qr_code_url
+    }
+

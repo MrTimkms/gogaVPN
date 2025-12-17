@@ -175,9 +175,18 @@ async function loadSettings() {
             }
             if (sbpInfo.qr_code_path) {
                 const qrContainer = document.getElementById('currentQrCode');
+                // Формируем правильный URL для QR-кода
+                let qrUrl = sbpInfo.qr_code_path;
+                // Если это только имя файла (без директории), добавляем static/uploads/
+                if (!qrUrl.includes('/') && !qrUrl.includes('\\')) {
+                    qrUrl = `/static/uploads/${qrUrl}`;
+                } else if (!qrUrl.startsWith('/')) {
+                    qrUrl = `/${qrUrl}`;
+                }
                 qrContainer.innerHTML = `
                     <label class="form-label">Текущий QR-код:</label>
-                    <img src="/${sbpInfo.qr_code_path}" alt="QR Code" class="img-thumbnail" style="max-width: 200px;">
+                    <img src="${qrUrl}" alt="QR Code" class="img-thumbnail" style="max-width: 200px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <p style="display:none; color: red;">Файл не найден: ${sbpInfo.qr_code_path}</p>
                 `;
             }
         }
