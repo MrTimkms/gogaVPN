@@ -45,6 +45,13 @@ async function loadUserProfile(telegramId) {
         currentUser = await response.json();
         userKey = currentUser.key_data;
         
+        // Проверяем, является ли пользователь админом
+        const adminCheck = await fetch(`/api/users/me/${telegramId}/is-admin`);
+        if (adminCheck.ok) {
+            const adminData = await adminCheck.json();
+            currentUser.is_admin = adminData.is_admin;
+        }
+        
         displayDashboard();
     } catch (error) {
         console.error('Error:', error);
@@ -71,6 +78,12 @@ function displayDashboard() {
     } else {
         statusBadge.className = 'status-badge status-debt';
         statusBadge.textContent = 'Не оплачено';
+    }
+    
+    // Показываем кнопку админ-панели если пользователь админ
+    if (currentUser.is_admin) {
+        document.getElementById('adminLink').style.display = 'inline-block';
+        document.getElementById('userInfo').textContent = '🔑 Администратор';
     }
     
     // Загружаем цену подписки

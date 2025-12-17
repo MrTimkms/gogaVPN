@@ -9,6 +9,21 @@ async function adminLogin() {
     }
     
     adminTelegramId = parseInt(telegramId);
+    
+    // Проверяем, является ли пользователь админом
+    try {
+        const checkResponse = await fetch(`/api/users/me/${adminTelegramId}/is-admin`);
+        if (checkResponse.ok) {
+            const adminData = await checkResponse.json();
+            if (!adminData.is_admin) {
+                alert('❌ Этот Telegram ID не является администратором!\n\nПроверьте настройки ADMIN_TELEGRAM_IDS в файле .env');
+                return;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка проверки админа:', error);
+    }
+    
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
     

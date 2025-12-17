@@ -4,6 +4,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.database import SessionLocal
 from app.models import User, Transaction
 from app.services.billing import get_subscription_price
@@ -20,6 +21,7 @@ router = Router()
 
 class PaymentStates(StatesGroup):
     waiting_for_screenshot = State()
+    waiting_csv_file = State()
 
 
 @router.message(Command("start"))
@@ -28,6 +30,7 @@ async def cmd_start(message: Message, state: FSMContext):
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.telegram_id == message.from_user.id).first()
+        is_admin_user = is_admin(message.from_user.id)
         
         if not user:
             # Создаем нового пользователя
@@ -43,22 +46,28 @@ async def cmd_start(message: Message, state: FSMContext):
             db.add(user)
             db.commit()
             
+            welcome_text = "👋 Добро пожаловать! Вы зарегистрированы в системе.\n\n"
+            if is_admin_user:
+                welcome_text += "🔑 Вы администратор. Доступны дополнительные функции."
+            
             await message.answer(
-                "👋 Добро пожаловать! Вы зарегистрированы в системе.\n\n"
-                "Используйте меню для навигации.",
-                reply_markup=get_main_menu()
+                welcome_text + "\nИспользуйте меню для навигации.",
+                reply_markup=get_main_menu(is_admin_user=is_admin_user)
             )
         else:
             if user.is_ghost:
                 await message.answer(
                     "⚠️ Ваш профиль еще не активирован администратором. "
                     "Ожидайте подтверждения.",
-                    reply_markup=get_main_menu()
+                    reply_markup=get_main_menu(is_admin_user=is_admin_user)
                 )
             else:
+                welcome_text = "👋 С возвращением!"
+                if is_admin_user:
+                    welcome_text += "\n🔑 Вы администратор. Доступны дополнительные функции."
                 await message.answer(
-                    "👋 С возвращением! Используйте меню для навигации.",
-                    reply_markup=get_main_menu()
+                    welcome_text + "\nИспользуйте меню для навигации.",
+                    reply_markup=get_main_menu(is_admin_user=is_admin_user)
                 )
     finally:
         db.close()
@@ -87,7 +96,8 @@ async def show_profile(message: Message):
             f"Статус: {status_emoji} {status_text}"
         )
         
-        await message.answer(text, parse_mode="HTML", reply_markup=get_main_menu())
+        is_admin_user = is_admin(message.from_user.id)
+        await message.answer(text, parse_mode="HTML", reply_markup=get_main_menu(is_admin_user=is_admin_user))
     finally:
         db.close()
 
@@ -103,10 +113,11 @@ async def get_key(message: Message):
             return
         
         if not user.key_data:
+            is_admin_user = is_admin(message.from_user.id)
             await message.answer(
                 "❌ Ключ еще не загружен администратором. "
                 "Ожидайте получения ключа.",
-                reply_markup=get_main_menu()
+                reply_markup=get_main_menu(is_admin_user=is_admin_user)
             )
             return
         
@@ -182,10 +193,11 @@ async def show_payment_info(message: Message, state: FSMContext):
 async def process_payment_screenshot(message: Message, state: FSMContext):
     """Обрабатывает скриншот чека"""
     bot = message.bot
+    is_admin_user = is_admin(message.from_user.id)
     await message.answer(
         "✅ Скриншот получен. Администратор проверит оплату и пополнит ваш баланс.\n"
         "Обычно это занимает несколько часов.",
-        reply_markup=get_main_menu()
+        reply_markup=get_main_menu(is_admin_user=is_admin_user)
     )
     await state.clear()
     
@@ -260,6 +272,65 @@ async def admin_panel(message: Message):
         parse_mode="HTML",
         reply_markup=get_admin_menu()
     )
+
+
+@router.message(F.text == "👥 Все пользователи")
+async def show_all_users(message: Message):
+    """Показывает всех пользователей"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    db = SessionLocal()
+    try:
+        users = db.query(User).limit(20).all()
+        total_count = db.query(User).count()
+        
+        if not users:
+            await message.answer("📭 Пользователей нет")
+            return
+        
+        text = f"👥 <b>Все пользователи</b> (показано {len(users)} из {total_count}):\n\n"
+        for user in users:
+            status_emoji = "✅" if user.status == "active" else "⚠️" if user.status == "debt" else "❌"
+            text += f"{status_emoji} {user.name}\n"
+            text += f"   ID: {user.telegram_id or 'нет'}, Баланс: {user.balance:.2f} ₽\n\n"
+        
+        if total_count > 20:
+            text += f"\n💡 Показано только первые 20. Всего: {total_count}"
+        
+        await message.answer(text, parse_mode="HTML")
+    finally:
+        db.close()
+
+
+@router.message(F.text == "👻 Спящие профили")
+async def show_ghost_users(message: Message):
+    """Показывает спящие профили"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    db = SessionLocal()
+    try:
+        ghost_users = db.query(User).filter(User.is_ghost == True).all()
+        
+        if not ghost_users:
+            await message.answer("✅ Спящих профилей нет")
+            return
+        
+        text = f"👻 <b>Спящие профили</b> ({len(ghost_users)}):\n\n"
+        for user in ghost_users[:10]:  # Показываем первые 10
+            text += f"• {user.name}\n"
+            text += f"  Баланс: {user.balance:.2f} ₽\n"
+            text += f"  ID в системе: {user.id}\n\n"
+        
+        if len(ghost_users) > 10:
+            text += f"\n💡 Показано 10 из {len(ghost_users)}. Используйте веб-админку для полного списка."
+        else:
+            text += "\n💡 Используйте веб-админку для привязки к Telegram ID"
+        
+        await message.answer(text, parse_mode="HTML")
+    finally:
+        db.close()
 
 
 @router.message(F.text == "⚠️ Должники")
@@ -341,8 +412,142 @@ async def sbp_settings(message: Message):
         db.close()
 
 
+@router.message(F.text == "⚙️ Админ-панель")
+async def admin_panel_button(message: Message):
+    """Открывает админ-панель по кнопке"""
+    if not is_admin(message.from_user.id):
+        await message.answer("❌ Доступ запрещен")
+        return
+    
+    await message.answer(
+        "⚙️ <b>Админ-панель</b>\n\n"
+        "Выберите действие:",
+        parse_mode="HTML",
+        reply_markup=get_admin_menu()
+    )
+
+
+@router.message(F.text == "📊 Статистика")
+async def show_statistics(message: Message):
+    """Показывает статистику"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    db = SessionLocal()
+    try:
+        from app.services.billing import get_subscription_price
+        
+        total_users = db.query(User).count()
+        active_users = db.query(User).filter(User.status == "active").count()
+        debtors_count = db.query(User).filter(User.status == "debt").count()
+        ghost_count = db.query(User).filter(User.is_ghost == True).count()
+        
+        total_balance = db.query(func.sum(User.balance)).scalar() or 0.0
+        price = get_subscription_price(db)
+        
+        text = (
+            f"📊 <b>Статистика системы</b>\n\n"
+            f"👥 Всего пользователей: {total_users}\n"
+            f"✅ Активных: {active_users}\n"
+            f"⚠️ Должников: {debtors_count}\n"
+            f"👻 Спящих профилей: {ghost_count}\n\n"
+            f"💰 Общий баланс: {total_balance:.2f} ₽\n"
+            f"💵 Тариф: {price:.2f} ₽/мес"
+        )
+        
+        await message.answer(text, parse_mode="HTML")
+    finally:
+        db.close()
+
+
+@router.message(F.text == "📥 Импорт CSV")
+async def import_csv_handler(message: Message, state: FSMContext):
+    """Обработчик импорта CSV"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    await message.answer(
+        "📥 <b>Импорт пользователей из CSV</b>\n\n"
+        "Отправьте CSV файл со следующей структурой:\n"
+        "<code>telegram_id;name;start_date;balance;key_data</code>\n\n"
+        "Пример:\n"
+        "<code>123456789;Иван Иванов;15.01.2024;250.00;vless://...</code>\n\n"
+        "⚠️ Разделитель: точка с запятой (;)\n"
+        "📅 Формат даты: ДД.ММ.ГГГГ",
+        parse_mode="HTML"
+    )
+    await state.set_state(PaymentStates.waiting_csv_file)
+
+
+@router.message(PaymentStates.waiting_csv_file, F.document)
+async def process_csv_file(message: Message, state: FSMContext):
+    """Обрабатывает загруженный CSV файл"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    if not message.document.file_name or not message.document.file_name.endswith('.csv'):
+        await message.answer("❌ Файл должен быть в формате CSV")
+        return
+    
+    try:
+        # Скачиваем файл
+        file = await message.bot.get_file(message.document.file_id)
+        file_path = file.file_path
+        
+        # Читаем содержимое
+        from io import BytesIO
+        file_content = await message.bot.download_file(file_path)
+        csv_content = file_content.read().decode('utf-8-sig')
+        
+        # Импортируем
+        db = SessionLocal()
+        try:
+            from app.services.csv_import import import_csv
+            imported, errors, ghost_users = import_csv(db, csv_content)
+            
+            result_text = (
+                f"✅ <b>Импорт завершен!</b>\n\n"
+                f"📊 Импортировано: {imported}\n"
+                f"👻 Спящих профилей: {ghost_users}\n"
+                f"❌ Ошибок: {len(errors)}"
+            )
+            
+            if errors:
+                result_text += "\n\n⚠️ <b>Ошибки:</b>\n"
+                for error in errors[:5]:  # Показываем первые 5 ошибок
+                    result_text += f"Строка {error['row']}: {error['error']}\n"
+                if len(errors) > 5:
+                    result_text += f"... и еще {len(errors) - 5} ошибок"
+            
+            await message.answer(result_text, parse_mode="HTML")
+        finally:
+            db.close()
+        
+        await state.clear()
+    except Exception as e:
+        logger.error(f"Ошибка импорта CSV: {e}")
+        await message.answer(f"❌ Ошибка импорта: {str(e)}")
+        await state.clear()
+
+
+@router.message(F.text == "🌐 Веб-админка")
+async def web_admin_link(message: Message):
+    """Отправляет ссылку на веб-админку"""
+    if not is_admin(message.from_user.id):
+        return
+    
+    await message.answer(
+        "🌐 <b>Веб-админ-панель</b>\n\n"
+        "Откройте в браузере:\n"
+        "http://ваш_сервер:8080/admin\n\n"
+        "💡 Войдите используя ваш Telegram ID",
+        parse_mode="HTML"
+    )
+
+
 @router.message(F.text == "🔙 Главное меню")
 async def back_to_main(message: Message):
     """Возврат в главное меню"""
-    await message.answer("Главное меню", reply_markup=get_main_menu())
+    is_admin_user = is_admin(message.from_user.id)
+    await message.answer("Главное меню", reply_markup=get_main_menu(is_admin_user=is_admin_user))
 

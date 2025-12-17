@@ -175,6 +175,21 @@ python -m app.bot.main
 - **Быстрая инструкция**: [QUICK_VPS.md](QUICK_VPS.md)
 - **Подробная инструкция**: [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)
 
+## 🔄 Обновление проекта
+
+После изменений в GitHub, обновите проект на VPS:
+
+```bash
+cd ~/gogaVPN && git pull && docker compose down && docker compose build --no-cache && docker compose up -d
+```
+
+Или используйте скрипт:
+```bash
+chmod +x update.sh && ./update.sh
+```
+
+**Подробнее**: [UPDATE.md](UPDATE.md)
+
 ## Лицензия
 
 MIT

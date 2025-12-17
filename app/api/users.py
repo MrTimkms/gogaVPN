@@ -17,6 +17,13 @@ def get_my_profile(telegram_id: int, db: Session = Depends(get_db)):
     return user
 
 
+@router.get("/me/{telegram_id}/is-admin")
+def check_is_admin(telegram_id: int):
+    """Проверяет, является ли пользователь администратором"""
+    from app.config import settings
+    return {"is_admin": telegram_id in settings.admin_ids_list}
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     """Получает пользователя по ID"""

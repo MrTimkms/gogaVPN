@@ -75,6 +75,9 @@ sudo certbot --nginx -d your-domain.com
 ## 📊 Полезные команды
 
 ```bash
+# Обновление проекта (после изменений в GitHub)
+cd ~/gogaVPN && git pull && docker compose down && docker compose build --no-cache && docker compose up -d
+
 # Проверка статуса (все компоненты)
 chmod +x check_status.sh && ./check_status.sh
 
@@ -86,9 +89,6 @@ docker compose restart
 
 # Остановка
 docker compose down
-
-# Обновление
-git pull && docker compose up -d --build
 ```
 
 ## ✅ Как проверить, что всё работает?

@@ -1,16 +1,29 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def get_main_menu():
+def get_main_menu(is_admin_user=False):
     """Главное меню бота"""
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="👤 Мой профиль")],
-            [KeyboardButton(text="🔑 Получить ключ"), KeyboardButton(text="💰 Пополнить баланс")],
-            [KeyboardButton(text="📄 Инструкция")]
-        ],
-        resize_keyboard=True
-    )
+    if is_admin_user:
+        # Меню для админа - с админскими функциями
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="👤 Мой профиль")],
+                [KeyboardButton(text="🔑 Получить ключ"), KeyboardButton(text="💰 Пополнить баланс")],
+                [KeyboardButton(text="⚙️ Админ-панель"), KeyboardButton(text="📊 Статистика")],
+                [KeyboardButton(text="📄 Инструкция")]
+            ],
+            resize_keyboard=True
+        )
+    else:
+        # Обычное меню для пользователей
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="👤 Мой профиль")],
+                [KeyboardButton(text="🔑 Получить ключ"), KeyboardButton(text="💰 Пополнить баланс")],
+                [KeyboardButton(text="📄 Инструкция")]
+            ],
+            resize_keyboard=True
+        )
     return keyboard
 
 
@@ -20,7 +33,8 @@ def get_admin_menu():
         keyboard=[
             [KeyboardButton(text="👥 Все пользователи"), KeyboardButton(text="👻 Спящие профили")],
             [KeyboardButton(text="⚠️ Должники"), KeyboardButton(text="📊 Статистика")],
-            [KeyboardButton(text="⚙️ Настройки"), KeyboardButton(text="💳 СБП настройки")],
+            [KeyboardButton(text="📥 Импорт CSV"), KeyboardButton(text="💳 СБП настройки")],
+            [KeyboardButton(text="⚙️ Настройки"), KeyboardButton(text="🌐 Веб-админка")],
             [KeyboardButton(text="🔙 Главное меню")]
         ],
         resize_keyboard=True
