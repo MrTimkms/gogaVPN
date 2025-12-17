@@ -90,18 +90,25 @@ async function loadUsers() {
         
         const users = await response.json();
         const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = users.map(user => `
+        tbody.innerHTML = users.map(user => {
+            const billingDate = user.next_billing_date ? new Date(user.next_billing_date).toLocaleDateString('ru-RU') : '-';
+            const notifyStatus = user.enable_billing_notifications 
+                ? `<span class="badge bg-info" title="Уведомления за ${user.notify_before_billing_days} дн.">🔔</span>` 
+                : '<span class="badge bg-secondary" title="Уведомления отключены">🔕</span>';
+            return `
             <tr>
                 <td>${user.id}</td>
                 <td>${user.name}</td>
                 <td>${user.telegram_id || '-'}</td>
                 <td>${user.balance.toFixed(2)} ₽</td>
+                <td>${billingDate} ${notifyStatus}</td>
                 <td>${getStatusBadge(user.status)}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="openUserModal(${user.id})">Управление</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         console.error('Error loading users:', error);
     }
@@ -280,6 +287,17 @@ async function openUserModal(userId) {
         document.getElementById('modalUserBalance').value = user.balance;
         document.getElementById('modalUserKey').value = user.key_data || '';
         
+        // Заполняем дату следующего списания
+        if (user.next_billing_date) {
+            const date = new Date(user.next_billing_date);
+            const dateStr = date.toISOString().split('T')[0];
+            document.getElementById('modalUserNextBillingDate').value = dateStr;
+        }
+        
+        // Заполняем настройки уведомлений
+        document.getElementById('modalUserEnableNotifications').checked = user.enable_billing_notifications !== false;
+        document.getElementById('modalUserNotifyDays').value = user.notify_before_billing_days || 2;
+        
         const modal = new bootstrap.Modal(document.getElementById('userModal'));
         modal.show();
     } catch (error) {
@@ -347,6 +365,70 @@ async function updateKey() {
         if (!response.ok) throw new Error('Ошибка обновления');
         
         alert('Ключ обновлен');
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Обновление даты следующего списания
+async function updateBillingDate() {
+    const userId = parseInt(document.getElementById('modalUserId').value);
+    const nextBillingDate = document.getElementById('modalUserNextBillingDate').value;
+    
+    if (!nextBillingDate) {
+        alert('Выберите дату');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                next_billing_date: nextBillingDate
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка обновления');
+        }
+        
+        alert('Дата списания обновлена');
+        loadUsers();
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Обновление настроек уведомлений
+async function updateNotificationSettings() {
+    const userId = parseInt(document.getElementById('modalUserId').value);
+    const enableNotifications = document.getElementById('modalUserEnableNotifications').checked;
+    const notifyDays = parseInt(document.getElementById('modalUserNotifyDays').value);
+    
+    if (isNaN(notifyDays) || notifyDays < 0 || notifyDays > 30) {
+        alert('Количество дней должно быть от 0 до 30');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}?telegram_id=${adminTelegramId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                enable_billing_notifications: enableNotifications,
+                notify_before_billing_days: notifyDays
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка обновления');
+        }
+        
+        alert('Настройки уведомлений обновлены');
+        loadUsers();
     } catch (error) {
         alert('Ошибка: ' + error.message);
     }

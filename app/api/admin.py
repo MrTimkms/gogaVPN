@@ -4,7 +4,7 @@ from app.database import get_db
 from app.models import User, Transaction, SystemSettings
 from app.schemas import (
     UserResponse, BalanceAdjustment, KeyUpdate, UserMapping,
-    CSVImportResponse, SettingsUpdate, SBPInfoUpdate
+    CSVImportResponse, SettingsUpdate, SBPInfoUpdate, UserUpdate
 )
 from app.services.csv_import import import_csv
 from app.services.billing import get_subscription_price, set_subscription_price
@@ -160,6 +160,47 @@ def update_key(
     )
     
     return {"success": True}
+
+
+@router.put("/users/{user_id}")
+def update_user(
+    user_id: int,
+    user_update: UserUpdate,
+    telegram_id: int,  # ID админа
+    db: Session = Depends(get_db)
+):
+    """Обновляет данные пользователя (дата списания, настройки уведомлений и т.д.)"""
+    if not verify_admin(telegram_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Обновляем поля, если они переданы
+    if user_update.name is not None:
+        user.name = user_update.name
+    if user_update.balance is not None:
+        user.balance = user_update.balance
+    if user_update.next_billing_date is not None:
+        user.next_billing_date = user_update.next_billing_date
+    if user_update.start_date is not None:
+        user.start_date = user_update.start_date
+    if user_update.status is not None:
+        user.status = user_update.status
+    if user_update.enable_billing_notifications is not None:
+        user.enable_billing_notifications = user_update.enable_billing_notifications
+    if user_update.notify_before_billing_days is not None:
+        # Проверяем, что значение в разумных пределах (0-30 дней)
+        if 0 <= user_update.notify_before_billing_days <= 30:
+            user.notify_before_billing_days = user_update.notify_before_billing_days
+        else:
+            raise HTTPException(status_code=400, detail="notify_before_billing_days must be between 0 and 30")
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {"success": True, "user": UserResponse.model_validate(user)}
 
 
 @router.get("/debtors", response_model=List[UserResponse])

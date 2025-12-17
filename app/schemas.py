@@ -13,6 +13,8 @@ class UserBase(BaseModel):
     status: str = "active"
     key_data: Optional[str] = None
     server_name: Optional[str] = None
+    enable_billing_notifications: bool = True
+    notify_before_billing_days: int = 2
 
 
 class UserCreate(UserBase):
@@ -28,11 +30,15 @@ class UserUpdate(BaseModel):
     status: Optional[str] = None
     key_data: Optional[str] = None
     server_name: Optional[str] = None
+    enable_billing_notifications: Optional[bool] = None
+    notify_before_billing_days: Optional[int] = None
 
 
 class UserResponse(UserBase):
     id: int
     is_ghost: bool
+    enable_billing_notifications: bool
+    notify_before_billing_days: int
     created_at: datetime
     updated_at: datetime
     

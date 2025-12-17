@@ -114,6 +114,7 @@
                                             <th>Имя</th>
                                             <th>Telegram ID</th>
                                             <th>Баланс</th>
+                                            <th>Дата списания</th>
                                             <th>Статус</th>
                                             <th>Действия</th>
                                         </tr>
@@ -233,12 +234,32 @@
                         <input type="number" class="form-control" id="modalUserBalance" step="0.01">
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Дата следующего списания</label>
+                        <input type="date" class="form-control" id="modalUserNextBillingDate">
+                        <button class="btn btn-info mt-2" onclick="updateBillingDate()">Сохранить дату</button>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Корректировка баланса</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="balanceAdjustment" step="0.01" placeholder="Сумма">
                             <input type="text" class="form-control" id="balanceDescription" placeholder="Описание">
                             <button class="btn btn-primary" onclick="adjustBalance()">Применить</button>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Настройки уведомлений</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="modalUserEnableNotifications" checked>
+                            <label class="form-check-label" for="modalUserEnableNotifications">
+                                Включить уведомления о списании
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text">Уведомлять за</span>
+                            <input type="number" class="form-control" id="modalUserNotifyDays" min="0" max="30" value="2">
+                            <span class="input-group-text">дней до списания</span>
+                        </div>
+                        <button class="btn btn-success mt-2" onclick="updateNotificationSettings()">Сохранить настройки</button>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">VPN Ключ</label>

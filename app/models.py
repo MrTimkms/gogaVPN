@@ -19,6 +19,9 @@ class User(Base):
     key_data = Column(Text, nullable=True)  # VPN ключ
     server_name = Column(String(100), nullable=True)  # Сервер 1, 2 или 3
     is_ghost = Column(Boolean, default=False)  # Спящий профиль без telegram_id
+    # Настройки уведомлений
+    enable_billing_notifications = Column(Boolean, default=True)  # Включены ли уведомления о списании
+    notify_before_billing_days = Column(Integer, default=2)  # За сколько дней до списания уведомлять
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
