@@ -118,3 +118,20 @@ chmod +x check_status.sh
 
 **Подробная инструкция**: [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)
 
+## 🔄 Переустановка
+
+Если нужно переустановить всё заново:
+
+```bash
+# Быстрая переустановка (сохраняет данные)
+cd ~/gogaVPN && git pull && docker compose down && docker compose build --no-cache && docker compose up -d
+
+# Полная переустановка (удаляет всё)
+chmod +x reinstall.sh && ./reinstall.sh
+
+# Установка с нуля
+chmod +x fresh_install.sh && ./fresh_install.sh
+```
+
+**Подробнее**: [REINSTALL.md](REINSTALL.md)
+

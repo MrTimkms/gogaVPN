@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from app.config import settings
 from app.bot import handlers
@@ -20,7 +19,7 @@ async def main():
     # Инициализация бота и диспетчера
     bot = Bot(
         token=settings.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+        parse_mode=ParseMode.HTML
     )
     dp = Dispatcher()
     
