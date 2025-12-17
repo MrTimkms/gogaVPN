@@ -1,0 +1,6 @@
+telegram_id;name;start_date;balance;key_data
+123456789;Иван Иванов;15.01.2024;250.00;vless://test-key-1@server1.example.com:443?security=tls&sni=server1.example.com#TestUser1
+987654321;Мария Петрова;20.01.2024;150.00;vless://test-key-2@server2.example.com:443?security=tls&sni=server2.example.com#TestUser2
+;Петр Сидоров;25.01.2024;100.00;
+555666777;Анна Козлова;10.01.2024;50.00;vless://test-key-4@server3.example.com:443?security=tls&sni=server3.example.com#TestUser4
+

@@ -1,0 +1,176 @@
+let currentUser = null;
+let userKey = null;
+
+// Инициализация Telegram Widget
+async function initTelegramWidget() {
+    // Получаем имя бота с сервера (можно добавить API endpoint)
+    const botName = 'YOUR_BOT_NAME'; // Замените на имя вашего бота или получите через API
+    const script = document.createElement('script');
+    script.src = `https://telegram.org/js/telegram-widget.js?22`;
+    script.setAttribute('data-telegram-login', botName);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
+    document.getElementById('telegram-login-container').appendChild(script);
+}
+
+// Обработка авторизации через Telegram
+function onTelegramAuth(user) {
+    console.log('Telegram auth:', user);
+    loadUserProfile(user.id);
+}
+
+// Вход по ID
+async function loginById() {
+    const telegramId = document.getElementById('telegramIdInput').value;
+    if (!telegramId) {
+        alert('Введите Telegram ID');
+        return;
+    }
+    await loadUserProfile(parseInt(telegramId));
+}
+
+// Загрузка профиля пользователя
+async function loadUserProfile(telegramId) {
+    try {
+        const response = await fetch(`/api/users/me/${telegramId}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                alert('Пользователь не найден. Используйте /start в боте для регистрации.');
+                return;
+            }
+            throw new Error('Ошибка загрузки профиля');
+        }
+        
+        currentUser = await response.json();
+        userKey = currentUser.key_data;
+        
+        displayDashboard();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Ошибка загрузки данных: ' + error.message);
+    }
+}
+
+// Отображение дашборда
+function displayDashboard() {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('dashboardSection').style.display = 'block';
+    
+    // Заполняем данные
+    document.getElementById('userBalance').textContent = currentUser.balance.toFixed(2) + ' ₽';
+    document.getElementById('userName').textContent = currentUser.name;
+    document.getElementById('userStatus').textContent = getStatusText(currentUser.status);
+    document.getElementById('nextBilling').textContent = formatDate(currentUser.next_billing_date);
+    
+    // Статус
+    const statusBadge = document.getElementById('statusBadge');
+    if (currentUser.status === 'active') {
+        statusBadge.className = 'status-badge status-active';
+        statusBadge.textContent = 'Оплачено';
+    } else {
+        statusBadge.className = 'status-badge status-debt';
+        statusBadge.textContent = 'Не оплачено';
+    }
+    
+    // Загружаем цену подписки
+    loadSubscriptionPrice();
+}
+
+// Загрузка цены подписки
+async function loadSubscriptionPrice() {
+    // Здесь можно добавить API для получения цены
+    document.getElementById('subscriptionPrice').textContent = '100';
+}
+
+// Копирование ключа
+function copyKey() {
+    if (!userKey) {
+        alert('Ключ еще не загружен администратором');
+        return;
+    }
+    navigator.clipboard.writeText(userKey).then(() => {
+        alert('Ключ скопирован в буфер обмена');
+    });
+}
+
+// Скачивание ключа
+function downloadKey() {
+    if (!userKey) {
+        alert('Ключ еще не загружен администратором');
+        return;
+    }
+    const blob = new Blob([userKey], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'vpn_config.vpn';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Показать QR-код
+function showQR() {
+    if (!userKey) {
+        alert('Ключ еще не загружен администратором');
+        return;
+    }
+    
+    const qrContainer = document.getElementById('qrCodeImage');
+    qrContainer.innerHTML = '';
+    
+    QRCode.toCanvas(qrContainer, userKey, {
+        width: 300,
+        margin: 2
+    }, (error) => {
+        if (error) {
+            console.error('QR Code error:', error);
+            alert('Ошибка генерации QR-кода');
+        } else {
+            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+            modal.show();
+        }
+    });
+}
+
+// Информация об оплате
+function showPaymentInfo() {
+    alert('Реквизиты для оплаты:\n\nКарта: 0000 0000 0000 0000\n\nПосле оплаты отправьте скриншот чека в бот для подтверждения.');
+}
+
+// Выход
+function logout() {
+    currentUser = null;
+    userKey = null;
+    document.getElementById('loginSection').style.display = 'block';
+    document.getElementById('dashboardSection').style.display = 'none';
+    document.getElementById('telegramIdInput').value = '';
+}
+
+// Вспомогательные функции
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU');
+}
+
+function getStatusText(status) {
+    const statusMap = {
+        'active': 'Активен',
+        'blocked': 'Заблокирован',
+        'debt': 'Задолженность'
+    };
+    return statusMap[status] || status;
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    // Инициализируем Telegram Widget (опционально)
+    // initTelegramWidget();
+    
+    // Проверяем, есть ли сохраненный пользователь
+    const savedUserId = localStorage.getItem('telegramId');
+    if (savedUserId) {
+        loadUserProfile(parseInt(savedUserId));
+    }
+});
+
